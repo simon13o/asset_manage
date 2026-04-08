@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>个人资产管理</title>
+  <style>
+    :root {
+      --bg: #f6f3ee;
+      --panel: #fffdf9;
+      --ink: #1f2a37;
+      --sub: #5c6773;
+      --accent: #006d77;
+      --accent-soft: #dff3f0;
+      --line: #e7dfd4;
+      --warn: #e29578;
+      --ok: #2a9d8f;
+      --shadow: 0 10px 30px rgba(26, 36, 49, 0.08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 90% -5%, #e9f8f6 0%, transparent 32%),
+        radial-gradient(circle at 5% 0%, #ffeede 0%, transparent 28%),
+        var(--bg);
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 16px 56px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #084c61 0%, #0b6e79 52%, #1f8f9c 100%);
+      color: #f8fffe;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: #d6f4ef;
+      font-size: 14px;
+    }
+
+    .tabbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .tabbtn {
+      background: #fff;
+      color: #1b3b46;
+      border: 1px solid #cfe4e1;
+      border-radius: 999px;
+      padding: 8px 14px;
+    }
+
+    .tabbtn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      letter-spacing: 0.02em;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--sub);
+      font-weight: 600;
+    }
+
+    input, select, button {
+      font: inherit;
+    }
+
+    input, select {
+      height: 38px;
+      border: 1px solid #dacfbf;
+      border-radius: 10px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid #9fd6d0;
+      border-color: var(--accent);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-soft { background: var(--accent-soft); color: #0e5550; }
+    .btn-warn { background: #fef3eb; color: #9a4b31; }
+
+    .kpi {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .kpi-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .kpi-card .t {
+      color: var(--sub);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .kpi-card .v {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .tables {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 8px 6px;
+      border-bottom: 1px dashed #e8dfd2;
+      text-align: left;
+    }
+
+    th { color: #6d7783; font-weight: 700; }
+
+    .mono {
+      font-family: "Consolas", "SFMono-Regular", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .chip {
+      background: #fff;
+      border: 1px solid #d8cebe;
+      padding: 7px 10px;
+      border-radius: 99px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .chip.active {
+      background: #eff9f7;
+      color: #0f5f59;
+      border-color: #9fd6d0;
+      font-weight: 700;
+    }
+
+    .muted { color: var(--sub); font-size: 12px; }
+    .pos { color: #0f7a46; }
+    .neg { color: #b5442f; }
+
+    .trend-wrap {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+
+    #trendCanvas {
+      width: 100%;
+      height: 320px;
+      display: block;
+    }
+
+    @media (max-width: 1000px) {
+      .grid, .tables { grid-template-columns: 1fr; }
+      .kpi { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      #trendCanvas { height: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>个人资产管理（周度）</h1>
+      <p>按平台与币种记录资产，统一折算为港币（HKD）结算。</p>
+    </section>
+
+    <section class="tabbar">
+      <button class="tabbtn active" data-tab="tab1">标签页1：录入设置</button>
+      <button class="tabbtn" data-tab="tab2">标签页2：周明细汇总</button>
+      <button class="tabbtn" data-tab="tab3">标签页3：历史趋势</button>
+    </section>
+
+    <section class="tab-pane active" id="tab1">
+      <section class="grid">
+        <div class="panel">
+          <h2>新增资产记录</h2>
+          <div class="form-grid">
+            <div class="field">
+              <label for="weekDate">周日期（建议填周五）</label>
+              <input id="weekDate" type="date" />
+            </div>
+            <div class="field">
+              <label for="platform">平台 / 机构</label>
+              <input id="platform" list="platformList" placeholder="例如 ZA / HSBC / Tiger" />
+              <datalist id="platformList"></datalist>
+            </div>
+            <div class="field">
+              <label for="currency">币种</label>
+              <select id="currency"></select>
+            </div>
+            <div class="field">
+              <label for="category">类别</label>
+              <input id="category" list="categoryList" placeholder="例如 现金流 / 投资 / 美股" />
+              <datalist id="categoryList"></datalist>
+            </div>
+            <div class="field">
+              <label for="amount">金额（原币）</label>
+              <input id="amount" type="number" step="0.01" min="0" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label for="remark">备注</label>
+              <input id="remark" placeholder="可选" />
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn-primary" id="addBtn">添加记录</button>
+            <button class="btn-soft" id="exportBtn">导出 JSON</button>
+            <button class="btn-soft" id="importBtn">导入 JSON</button>
+            <button class="btn-warn" id="clearBtn">清空当周</button>
+            <input id="fileInput" type="file" accept="application/json" hidden />
+          </div>
+          <p class="muted" id="msg">数据保存在浏览器本地（localStorage）。</p>
+        </div>
+
+        <div class="panel">
+          <h2>汇率设置（兑 HKD）</h2>
+          <table id="rateTable">
+            <thead>
+              <tr><th>Currency</th><th>Rate</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="btn-row">
+            <button class="btn-primary" id="saveRateBtn">保存汇率</button>
+          </div>
+          <p class="muted">示例：`USD = 7.8`，`CNY = 1.1`，`HKD = 1`。</p>
+        </div>
+      </section>
+    </section>
+
+    <section class="tab-pane" id="tab2">
+      <section class="panel" style="margin-bottom: 14px;">
+        <h2>周选择</h2>
+        <div class="chips" id="weekChips"></div>
+        <p class="muted">点击上方周标签可切换查看。</p>
+      </section>
+
+      <section class="kpi">
+        <div class="kpi-card">
+          <div class="t">当周记录数</div>
+          <div class="v mono" id="kpiCount">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="t">当周原币总额（仅数值汇总）</div>
+          <div class="v mono" id="kpiRaw">0.00</div>
+        </div>
+        <div class="kpi-card">
+          <div class="t">当周折算总资产（HKD）</div>
+          <div class="v mono" id="kpiHkd">HK$ 0.00</div>
+        </div>
+      </section>
+
+      <section class="tables">
+        <div class="panel">
+          <h2>当周明细</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>平台</th><th>币种</th><th>类别</th><th>金额</th><th>折算HKD</th><th>备注</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="detailBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <h2>按平台汇总（HKD）</h2>
+          <table>
+            <thead><tr><th>平台</th><th>金额</th></tr></thead>
+            <tbody id="platformBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <h2>按币种汇总（原币/HKD）</h2>
+          <table>
+            <thead><tr><th>币种</th><th>原币</th><th>HKD</th></tr></thead>
+            <tbody id="currencyBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="tab-pane" id="tab3">
+      <section class="kpi">
+        <div class="kpi-card">
+          <div class="t">最新周总资产（HKD）</div>
+          <div class="v mono" id="trendNow">HK$ 0.00</div>
+        </div>
+        <div class="kpi-card">
+          <div class="t">较上周变化金额（HKD）</div>
+          <div class="v mono" id="trendDelta">0.00</div>
+        </div>
+        <div class="kpi-card">
+          <div class="t">较上周变化率</div>
+          <div class="v mono" id="trendRate">0.00%</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>折算总资产历史趋势（HKD）</h2>
+        <div class="trend-wrap">
+          <canvas id="trendCanvas"></canvas>
+        </div>
+        <p class="muted">按周汇总展示，总额已包含“信用卡”为负债后的净值。</p>
+      </section>
+
+      <section class="panel">
+        <h2>周度历史（HKD）</h2>
+        <table>
+          <thead><tr><th>周日期</th><th>折算总资产（HKD）</th><th>变化金额</th><th>变化率</th></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "asset_manager_v1";
+
+    const defaultPlatforms = [
+      "ZA", "HSBC", "Webull", "Tiger", "Longbridge", "IKBR", "FUTU", "Wechat", "Alipay", "BOC", "CITIC", "CITI", "招商"
+    ];
+
+    const defaultCategories = ["现金流", "投资", "定存", "股票", "美股", "低风险投资", "信用卡"];
+    const defaultRates = { HKD: 1, CNY: 1.1, USD: 7.8 };
+
+    const state = loadState();
+
+    const weekDateEl = document.getElementById("weekDate");
+    const platformEl = document.getElementById("platform");
+    const currencyEl = document.getElementById("currency");
+    const categoryEl = document.getElementById("category");
+    const amountEl = document.getElementById("amount");
+    const remarkEl = document.getElementById("remark");
+    const msgEl = document.getElementById("msg");
+    const fileInputEl = document.getElementById("fileInput");
+    const tabButtons = document.querySelectorAll(".tabbtn");
+    const tabPanes = document.querySelectorAll(".tab-pane");
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return {
+          selectedWeek: todayISO(),
+          records: [],
+          rates: { ...defaultRates },
+          platforms: [...defaultPlatforms],
+          categories: [...defaultCategories]
+        };
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        return {
+          selectedWeek: parsed.selectedWeek || todayISO(),
+          records: Array.isArray(parsed.records) ? parsed.records : [],
+          rates: { ...defaultRates, ...(parsed.rates || {}) },
+          platforms: uniq([...(parsed.platforms || []), ...defaultPlatforms]),
+          categories: uniq([...(parsed.categories || []), ...defaultCategories])
+        };
+      } catch (_) {
+        return {
+          selectedWeek: todayISO(),
+          records: [],
+          rates: { ...defaultRates },
+          platforms: [...defaultPlatforms],
+          categories: [...defaultCategories]
+        };
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function todayISO() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function uniq(arr) {
+      return [...new Set(arr.filter(Boolean))];
+    }
+
+    function fmt(n) {
+      return Number(n || 0).toLocaleString("en-HK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtInt(n) {
+      return Math.round(Number(n || 0)).toLocaleString("en-HK", { maximumFractionDigits: 0 });
+    }
+
+    function fmtSigned(n) {
+      const num = Number(n || 0);
+      return `${num > 0 ? "+" : ""}${fmt(num)}`;
+    }
+
+    function fmtPct(n) {
+      if (n === null || n === undefined || !Number.isFinite(n)) return "--";
+      const num = Number(n);
+      return `${num > 0 ? "+" : ""}${num.toFixed(2)}%`;
+    }
+
+    function calcHkd(amount, currency) {
+      const rate = Number(state.rates[currency]);
+      if (!Number.isFinite(rate)) return 0;
+      return Number(amount || 0) * rate;
+    }
+
+    function signedAmount(record) {
+      const amount = Number(record.amount || 0);
+      const cat = String(record.category || "").trim();
+      if (cat.includes("信用卡")) return -Math.abs(amount);
+      return amount;
+    }
+
+    function getCurrentWeekRecords() {
+      return state.records.filter(r => r.weekDate === state.selectedWeek);
+    }
+
+    function getWeeklyTotals() {
+      const byWeek = {};
+      state.records.forEach(r => {
+        const hkd = calcHkd(signedAmount(r), r.currency);
+        byWeek[r.weekDate] = (byWeek[r.weekDate] || 0) + hkd;
+      });
+      return Object.entries(byWeek)
+        .map(([weekDate, totalHkd]) => ({ weekDate, totalHkd }))
+        .sort((a, b) => a.weekDate.localeCompare(b.weekDate));
+    }
+
+    function renderSelects() {
+      document.getElementById("platformList").innerHTML = state.platforms.map(x => `<option value="${escapeHtml(x)}"></option>`).join("");
+      document.getElementById("categoryList").innerHTML = state.categories.map(x => `<option value="${escapeHtml(x)}"></option>`).join("");
+
+      const currencies = uniq([...Object.keys(state.rates), ...state.records.map(r => r.currency)]);
+      currencyEl.innerHTML = currencies.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+      if (!currencies.includes(currencyEl.value)) currencyEl.value = currencies[0] || "HKD";
+    }
+
+    function renderRates() {
+      const body = document.querySelector("#rateTable tbody");
+      const currencies = uniq([...Object.keys(state.rates), ...state.records.map(r => r.currency)]).sort();
+      body.innerHTML = currencies.map(c => `
+        <tr>
+          <td class="mono">${escapeHtml(c)}</td>
+          <td><input data-rate-currency="${escapeHtml(c)}" type="number" step="0.0001" min="0" value="${Number(state.rates[c] ?? 1)}" /></td>
+        </tr>
+      `).join("");
+    }
+
+    function renderWeekChips() {
+      const dates = uniq([state.selectedWeek, ...state.records.map(r => r.weekDate)]).sort().reverse();
+      const chips = document.getElementById("weekChips");
+      chips.innerHTML = dates.map(d => `<button class="chip ${d === state.selectedWeek ? "active" : ""}" data-week="${d}">${d}</button>`).join("");
+      chips.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.selectedWeek = btn.dataset.week;
+          weekDateEl.value = state.selectedWeek;
+          saveState();
+          renderAll();
+        });
+      });
+    }
+
+    function renderDetail() {
+      const body = document.getElementById("detailBody");
+      const rows = getCurrentWeekRecords();
+      body.innerHTML = rows.map(r => {
+        const amt = signedAmount(r);
+        const hkd = calcHkd(amt, r.currency);
+        return `
+          <tr>
+            <td>${escapeHtml(r.platform)}</td>
+            <td class="mono">${escapeHtml(r.currency)}</td>
+            <td>${escapeHtml(r.category || "")}</td>
+            <td class="mono">${fmt(amt)}</td>
+            <td class="mono">${fmt(hkd)}</td>
+            <td>${escapeHtml(r.remark || "")}</td>
+            <td><button class="btn-warn" data-del="${r.id}">删除</button></td>
+          </tr>
+        `;
+      }).join("");
+
+      body.querySelectorAll("button[data-del]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.del;
+          state.records = state.records.filter(r => r.id !== id);
+          saveState();
+          renderAll();
+          flash("已删除记录");
+        });
+      });
+    }
+
+    function renderSummary() {
+      const rows = getCurrentWeekRecords();
+      const byPlatform = {};
+      const byCurrency = {};
+
+      let totalRaw = 0;
+      let totalHkd = 0;
+
+      rows.forEach(r => {
+        const amount = signedAmount(r);
+        const hkd = calcHkd(amount, r.currency);
+        totalRaw += amount;
+        totalHkd += hkd;
+
+        byPlatform[r.platform] = (byPlatform[r.platform] || 0) + hkd;
+        if (!byCurrency[r.currency]) byCurrency[r.currency] = { raw: 0, hkd: 0 };
+        byCurrency[r.currency].raw += amount;
+        byCurrency[r.currency].hkd += hkd;
+      });
+
+      document.getElementById("kpiCount").textContent = String(rows.length);
+      document.getElementById("kpiRaw").textContent = fmt(totalRaw);
+      document.getElementById("kpiHkd").textContent = `HK$ ${fmt(totalHkd)}`;
+
+      const pBody = document.getElementById("platformBody");
+      pBody.innerHTML = Object.entries(byPlatform)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td class="mono">${fmt(v)}</td></tr>`)
+        .join("") || `<tr><td colspan="2" class="muted">暂无数据</td></tr>`;
+
+      const cBody = document.getElementById("currencyBody");
+      cBody.innerHTML = Object.entries(byCurrency)
+        .sort((a, b) => b[1].hkd - a[1].hkd)
+        .map(([k, v]) => `<tr><td class="mono">${escapeHtml(k)}</td><td class="mono">${fmt(v.raw)}</td><td class="mono">${fmt(v.hkd)}</td></tr>`)
+        .join("") || `<tr><td colspan="3" class="muted">暂无数据</td></tr>`;
+    }
+
+    function renderHistory() {
+      const weekly = getWeeklyTotals();
+
+      const body = document.getElementById("historyBody");
+      if (weekly.length === 0) {
+        body.innerHTML = `<tr><td colspan="4" class="muted">暂无数据</td></tr>`;
+        return;
+      }
+
+      const desc = [...weekly].reverse();
+      body.innerHTML = desc.map((item, idx) => {
+        const ascIndex = weekly.findIndex(x => x.weekDate === item.weekDate);
+        const prev = ascIndex > 0 ? weekly[ascIndex - 1].totalHkd : null;
+        const delta = prev === null ? null : item.totalHkd - prev;
+        const rate = prev === null || prev === 0 ? null : (delta / Math.abs(prev)) * 100;
+        const deltaClass = delta === null ? "" : (delta >= 0 ? "pos" : "neg");
+        const rateClass = rate === null ? "" : (rate >= 0 ? "pos" : "neg");
+        return `<tr>
+          <td>${item.weekDate}</td>
+          <td class="mono">HK$ ${fmt(item.totalHkd)}</td>
+          <td class="mono ${deltaClass}">${delta === null ? "--" : fmtSigned(delta)}</td>
+          <td class="mono ${rateClass}">${fmtPct(rate)}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function renderTrend() {
+      const weekly = getWeeklyTotals();
+      const nowEl = document.getElementById("trendNow");
+      const deltaEl = document.getElementById("trendDelta");
+      const rateEl = document.getElementById("trendRate");
+      const canvas = document.getElementById("trendCanvas");
+      const ctx = canvas.getContext("2d");
+      const host = canvas.parentElement;
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(320, Math.floor(host.clientWidth));
+      const h = Math.max(220, Math.floor(canvas.clientHeight || 320));
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      if (weekly.length === 0) {
+        nowEl.textContent = "HK$ 0.00";
+        deltaEl.textContent = "--";
+        rateEl.textContent = "--";
+        deltaEl.className = "v mono";
+        rateEl.className = "v mono";
+        ctx.fillStyle = "#6f7a86";
+        ctx.font = "14px sans-serif";
+        ctx.fillText("暂无历史数据", 16, 28);
+        return;
+      }
+
+      const latest = weekly[weekly.length - 1].totalHkd;
+      const prev = weekly.length > 1 ? weekly[weekly.length - 2].totalHkd : null;
+      const delta = prev === null ? null : latest - prev;
+      const rate = prev === null || prev === 0 ? null : (delta / Math.abs(prev)) * 100;
+
+      nowEl.textContent = `HK$ ${fmt(latest)}`;
+      deltaEl.textContent = delta === null ? "--" : fmtSigned(delta);
+      rateEl.textContent = fmtPct(rate);
+      deltaEl.className = `v mono ${delta === null ? "" : (delta >= 0 ? "pos" : "neg")}`;
+      rateEl.className = `v mono ${rate === null ? "" : (rate >= 0 ? "pos" : "neg")}`;
+
+      const values = weekly.map(x => x.totalHkd);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const left = 76;
+      const right = 12;
+      const top = 18;
+      const bottom = 52;
+      const plotW = w - left - right;
+      const plotH = h - top - bottom;
+      const range = Math.max(1, max - min);
+
+      const points = weekly.map((item, i) => {
+        const x = left + (weekly.length === 1 ? plotW / 2 : (i / (weekly.length - 1)) * plotW);
+        const y = top + ((max - item.totalHkd) / range) * plotH;
+        return { x, y, weekDate: item.weekDate, value: item.totalHkd };
+      });
+
+      const tickCount = 5;
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= tickCount; i++) {
+        const t = i / tickCount;
+        const y = top + t * plotH;
+        const raw = max - t * range;
+        const tickValue = Math.round(raw);
+        ctx.strokeStyle = "#e4edeb";
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(w - right, y);
+        ctx.stroke();
+
+        ctx.fillStyle = "#60707d";
+        ctx.font = "12px sans-serif";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText(fmtInt(tickValue), left - 8, y);
+      }
+
+      ctx.strokeStyle = "#cfdad8";
+      ctx.beginPath();
+      ctx.moveTo(left, top);
+      ctx.lineTo(left, h - bottom);
+      ctx.lineTo(w - right, h - bottom);
+      ctx.stroke();
+
+      ctx.fillStyle = "#5b6773";
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      points.forEach((p, i) => {
+        const shortDate = p.weekDate.slice(5);
+        if (weekly.length <= 14 || i % 2 === 0 || i === weekly.length - 1) {
+          ctx.fillText(shortDate, p.x, h - bottom + 8);
+        }
+      });
+
+      ctx.strokeStyle = "#0b6e79";
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      points.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = "#0b6e79";
+      points.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = i % 2 === 0 ? "bottom" : "top";
+        ctx.fillStyle = "#355763";
+        const labelY = i % 2 === 0 ? p.y - 6 : p.y + 6;
+        ctx.fillText(fmtInt(p.value), p.x, labelY);
+        ctx.fillStyle = "#0b6e79";
+      });
+
+    }
+
+    function initTabs() {
+      tabButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const target = btn.dataset.tab;
+          tabButtons.forEach(b => b.classList.toggle("active", b === btn));
+          tabPanes.forEach(p => p.classList.toggle("active", p.id === target));
+          if (target === "tab3") renderTrend();
+        });
+      });
+    }
+
+    function renderAll() {
+      renderSelects();
+      renderRates();
+      renderWeekChips();
+      renderDetail();
+      renderSummary();
+      renderHistory();
+      renderTrend();
+    }
+
+    function flash(text, ok = true) {
+      msgEl.textContent = text;
+      msgEl.style.color = ok ? "var(--ok)" : "var(--warn)";
+      setTimeout(() => {
+        msgEl.textContent = "数据保存在浏览器本地（localStorage）。";
+        msgEl.style.color = "var(--sub)";
+      }, 1800);
+    }
+
+    function escapeHtml(text) {
+      return String(text || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    document.getElementById("addBtn").addEventListener("click", () => {
+      const rec = {
+        id: crypto.randomUUID(),
+        weekDate: weekDateEl.value,
+        platform: platformEl.value.trim(),
+        currency: currencyEl.value.trim().toUpperCase(),
+        category: categoryEl.value.trim(),
+        amount: Number(amountEl.value),
+        remark: remarkEl.value.trim()
+      };
+
+      if (!rec.weekDate || !rec.platform || !rec.currency || !Number.isFinite(rec.amount)) {
+        flash("请完整填写：周日期 / 平台 / 币种 / 金额", false);
+        return;
+      }
+
+      state.records.push(rec);
+      state.platforms = uniq([...state.platforms, rec.platform]);
+      if (rec.category) state.categories = uniq([...state.categories, rec.category]);
+      if (!(rec.currency in state.rates)) state.rates[rec.currency] = 1;
+      state.selectedWeek = rec.weekDate;
+      saveState();
+      renderAll();
+
+      amountEl.value = "";
+      remarkEl.value = "";
+      flash("记录已添加");
+    });
+
+    document.getElementById("saveRateBtn").addEventListener("click", () => {
+      document.querySelectorAll("input[data-rate-currency]").forEach(el => {
+        const cur = el.dataset.rateCurrency;
+        const val = Number(el.value);
+        if (Number.isFinite(val) && val > 0) {
+          state.rates[cur] = val;
+        }
+      });
+      saveState();
+      renderAll();
+      flash("汇率已保存");
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      const n = getCurrentWeekRecords().length;
+      if (n === 0) return;
+      const ok = confirm(`确定清空 ${state.selectedWeek} 的 ${n} 条记录吗？`);
+      if (!ok) return;
+      state.records = state.records.filter(r => r.weekDate !== state.selectedWeek);
+      saveState();
+      renderAll();
+      flash("已清空当周记录");
+    });
+
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `asset-manager-${state.selectedWeek}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("已导出 JSON");
+    });
+
+    document.getElementById("importBtn").addEventListener("click", () => fileInputEl.click());
+
+    fileInputEl.addEventListener("change", async () => {
+      const f = fileInputEl.files?.[0];
+      if (!f) return;
+      try {
+        const txt = await f.text();
+        const data = JSON.parse(txt);
+        if (!Array.isArray(data.records)) throw new Error("bad format");
+
+        state.records = data.records;
+        state.rates = { ...defaultRates, ...(data.rates || {}) };
+        state.platforms = uniq([...(data.platforms || []), ...defaultPlatforms]);
+        state.categories = uniq([...(data.categories || []), ...defaultCategories]);
+        state.selectedWeek = data.selectedWeek || todayISO();
+
+        saveState();
+        renderAll();
+        flash("导入成功");
+      } catch (_) {
+        flash("导入失败：文件格式不正确", false);
+      } finally {
+        fileInputEl.value = "";
+      }
+    });
+
+    weekDateEl.value = state.selectedWeek;
+    weekDateEl.addEventListener("change", () => {
+      state.selectedWeek = weekDateEl.value || todayISO();
+      saveState();
+      renderAll();
+    });
+
+    window.addEventListener("resize", () => {
+      renderTrend();
+    });
+
+    initTabs();
+    renderAll();
+  </script>
+</body>
+</html>
