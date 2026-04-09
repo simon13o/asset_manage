@@ -293,8 +293,7 @@
             </div>
             <div class="field">
               <label for="platform">平台 / 机构</label>
-              <input id="platform" list="platformList" placeholder="例如 ZA / HSBC / Tiger" />
-              <datalist id="platformList"></datalist>
+              <select id="platform"></select>
             </div>
             <div class="field">
               <label for="currency">币种</label>
@@ -302,8 +301,7 @@
             </div>
             <div class="field">
               <label for="category">类别</label>
-              <input id="category" list="categoryList" placeholder="例如 现金流 / 投资 / 美股" />
-              <datalist id="categoryList"></datalist>
+              <select id="category"></select>
             </div>
             <div class="field">
               <label for="amount">金额（原币）</label>
@@ -364,15 +362,20 @@
 
       <section class="tables">
         <div class="panel">
-          <h2>当周明细</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>平台</th><th>币种</th><th>类别</th><th>金额</th><th>折算HKD</th><th>备注</th><th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="detailBody"></tbody>
-          </table>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <h2 style="margin:0;">当周明细</h2>
+            <button class="btn-soft" id="toggleDetailBtn">收起</button>
+          </div>
+          <div id="detailPanelContent" style="margin-top:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>平台</th><th>币种</th><th>类别</th><th>金额</th><th>折算HKD</th><th>备注</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="detailBody"></tbody>
+            </table>
+          </div>
         </div>
 
         <div class="panel">
@@ -519,7 +522,7 @@
       "ZA", "HSBC", "Webull", "Tiger", "Longbridge", "IKBR", "FUTU", "Wechat", "Alipay", "BOC", "CITIC", "CITI", "招商"
     ];
 
-    const defaultCategories = ["现金流", "投资", "定存", "股票", "美股", "低风险投资", "信用卡"];
+    const defaultCategories = ["现金流", "定存", "股票", "美股", "低风险投资", "信用卡"];
     const defaultRates = { HKD: 1, CNY: 1.1, USD: 7.8 };
 
     const state = loadState();
@@ -532,6 +535,8 @@
     const remarkEl = document.getElementById("remark");
     const msgEl = document.getElementById("msg");
     const fileInputEl = document.getElementById("fileInput");
+    const toggleDetailBtn = document.getElementById("toggleDetailBtn");
+    const detailPanelContent = document.getElementById("detailPanelContent");
     const prodNameEl = document.getElementById("prodName");
     const prodSymbolEl = document.getElementById("prodSymbol");
     const prodCurrencyEl = document.getElementById("prodCurrency");
@@ -540,6 +545,8 @@
     const prodCurrentPriceEl = document.getElementById("prodCurrentPrice");
     const tabButtons = document.querySelectorAll(".tabbtn");
     const tabPanes = document.querySelectorAll(".tab-pane");
+    let detailCollapsed = false;
+    let editingDetailId = null;
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -682,8 +689,18 @@
     }
 
     function renderSelects() {
-      document.getElementById("platformList").innerHTML = state.platforms.map(x => `<option value="${escapeHtml(x)}"></option>`).join("");
-      document.getElementById("categoryList").innerHTML = state.categories.map(x => `<option value="${escapeHtml(x)}"></option>`).join("");
+      const prevPlatform = platformEl.value;
+      const prevCategory = categoryEl.value;
+      const platforms = uniq(state.platforms).sort((a, b) => String(a).localeCompare(String(b), "zh-Hans-CN"));
+      const categories = uniq(state.categories).sort((a, b) => String(a).localeCompare(String(b), "zh-Hans-CN"));
+
+      platformEl.innerHTML = platforms.map(x => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
+      categoryEl.innerHTML = [`<option value="">未分类</option>`, ...categories.map(x => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`)].join("");
+
+      if (platforms.includes(prevPlatform)) platformEl.value = prevPlatform;
+      if (categories.includes(prevCategory)) categoryEl.value = prevCategory;
+      if (!platformEl.value && platforms[0]) platformEl.value = platforms[0];
+      if (!categoryEl.value && categories[0]) categoryEl.value = categories[0];
 
       const currencies = uniq([...Object.keys(state.rates), ...state.records.map(r => r.currency)]);
       currencyEl.innerHTML = currencies.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
@@ -718,7 +735,28 @@
     function renderDetail() {
       const body = document.getElementById("detailBody");
       const rows = getCurrentWeekRecords();
+      const platformOptions = uniq(state.platforms).map(x => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
+      const categoryOptions = [`<option value="">未分类</option>`, ...uniq(state.categories).map(x => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`)].join("");
+      const currencyOptions = uniq([...Object.keys(state.rates), ...state.records.map(r => r.currency)])
+        .map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+
       body.innerHTML = rows.map(r => {
+        if (editingDetailId === r.id) {
+          return `
+            <tr>
+              <td><select data-edit-platform="${r.id}">${platformOptions}</select></td>
+              <td><select data-edit-currency="${r.id}">${currencyOptions}</select></td>
+              <td><select data-edit-category="${r.id}">${categoryOptions}</select></td>
+              <td><input data-edit-amount="${r.id}" type="number" step="0.01" value="${Number(r.amount || 0)}" /></td>
+              <td class="mono">${fmt(calcHkd(signedAmount(r), r.currency))}</td>
+              <td><input data-edit-remark="${r.id}" value="${escapeHtml(r.remark || "")}" /></td>
+              <td>
+                <button class="btn-primary" data-save="${r.id}">保存</button>
+                <button class="btn-soft" data-cancel="${r.id}">取消</button>
+              </td>
+            </tr>
+          `;
+        }
         const amt = signedAmount(r);
         const hkd = calcHkd(amt, r.currency);
         return `
@@ -729,15 +767,75 @@
             <td class="mono">${fmt(amt)}</td>
             <td class="mono">${fmt(hkd)}</td>
             <td>${escapeHtml(r.remark || "")}</td>
-            <td><button class="btn-warn" data-del="${r.id}">删除</button></td>
+            <td>
+              <button class="btn-soft" data-edit="${r.id}">编辑</button>
+              <button class="btn-warn" data-del="${r.id}">删除</button>
+            </td>
           </tr>
         `;
       }).join("");
+
+      if (editingDetailId) {
+        const rec = rows.find(x => x.id === editingDetailId);
+        if (rec) {
+          const pEl = body.querySelector(`select[data-edit-platform="${editingDetailId}"]`);
+          const cEl = body.querySelector(`select[data-edit-currency="${editingDetailId}"]`);
+          const gEl = body.querySelector(`select[data-edit-category="${editingDetailId}"]`);
+          if (pEl) pEl.value = rec.platform;
+          if (cEl) cEl.value = rec.currency;
+          if (gEl) gEl.value = rec.category || "";
+        }
+      }
+
+      body.querySelectorAll("button[data-edit]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          editingDetailId = btn.dataset.edit;
+          renderDetail();
+        });
+      });
+
+      body.querySelectorAll("button[data-cancel]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          editingDetailId = null;
+          renderDetail();
+        });
+      });
+
+      body.querySelectorAll("button[data-save]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.save;
+          const rec = state.records.find(x => x.id === id);
+          if (!rec) return;
+          const pEl = body.querySelector(`select[data-edit-platform="${id}"]`);
+          const cEl = body.querySelector(`select[data-edit-currency="${id}"]`);
+          const gEl = body.querySelector(`select[data-edit-category="${id}"]`);
+          const aEl = body.querySelector(`input[data-edit-amount="${id}"]`);
+          const rEl = body.querySelector(`input[data-edit-remark="${id}"]`);
+          const amount = Number(aEl?.value);
+          if (!pEl?.value || !cEl?.value || !Number.isFinite(amount)) {
+            flash("修改失败：请填写有效的平台/币种/金额", false);
+            return;
+          }
+          rec.platform = pEl.value;
+          rec.currency = cEl.value.toUpperCase();
+          rec.category = gEl?.value || "";
+          rec.amount = amount;
+          rec.remark = rEl?.value || "";
+          if (!(rec.currency in state.rates)) state.rates[rec.currency] = 1;
+          state.platforms = uniq([...state.platforms, rec.platform]);
+          if (rec.category) state.categories = uniq([...state.categories, rec.category]);
+          editingDetailId = null;
+          saveState();
+          renderAll();
+          flash("明细已更新");
+        });
+      });
 
       body.querySelectorAll("button[data-del]").forEach(btn => {
         btn.addEventListener("click", () => {
           const id = btn.dataset.del;
           state.records = state.records.filter(r => r.id !== id);
+          if (editingDetailId === id) editingDetailId = null;
           saveState();
           renderAll();
           flash("已删除记录");
@@ -1211,6 +1309,12 @@
       state.selectedWeek = weekDateEl.value || todayISO();
       saveState();
       renderAll();
+    });
+
+    toggleDetailBtn.addEventListener("click", () => {
+      detailCollapsed = !detailCollapsed;
+      detailPanelContent.style.display = detailCollapsed ? "none" : "";
+      toggleDetailBtn.textContent = detailCollapsed ? "展开" : "收起";
     });
 
     window.addEventListener("resize", () => {
