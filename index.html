@@ -190,7 +190,7 @@
 
     .tables {
       display: grid;
-      grid-template-columns: 1.2fr 1fr 1fr;
+      grid-template-columns: 1.2fr 1fr;
       gap: 10px;
       margin-bottom: 14px;
     }
@@ -240,6 +240,11 @@
     .muted { color: var(--sub); font-size: 12px; }
     .pos { color: #0f7a46; }
     .neg { color: #b5442f; }
+    .tab4-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
 
     .trend-wrap {
       border: 1px solid var(--line);
@@ -274,6 +279,7 @@
       <button class="tabbtn active" data-tab="tab1">标签页1：录入设置</button>
       <button class="tabbtn" data-tab="tab2">标签页2：周明细汇总</button>
       <button class="tabbtn" data-tab="tab3">标签页3：历史趋势</button>
+      <button class="tabbtn" data-tab="tab4">标签页4：投资产品</button>
     </section>
 
     <section class="tab-pane active" id="tab1">
@@ -372,7 +378,7 @@
         <div class="panel">
           <h2>按平台汇总（HKD）</h2>
           <table>
-            <thead><tr><th>平台</th><th>金额</th></tr></thead>
+            <thead><tr><th>平台</th><th>金额</th><th>占比</th></tr></thead>
             <tbody id="platformBody"></tbody>
           </table>
         </div>
@@ -380,8 +386,16 @@
         <div class="panel">
           <h2>按币种汇总（原币/HKD）</h2>
           <table>
-            <thead><tr><th>币种</th><th>原币</th><th>HKD</th></tr></thead>
+            <thead><tr><th>币种</th><th>原币</th><th>HKD</th><th>占比</th></tr></thead>
             <tbody id="currencyBody"></tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <h2>按类别汇总（HKD）</h2>
+          <table>
+            <thead><tr><th>类别</th><th>金额</th><th>占比</th></tr></thead>
+            <tbody id="categoryBody"></tbody>
           </table>
         </div>
       </section>
@@ -408,7 +422,7 @@
         <div class="trend-wrap">
           <canvas id="trendCanvas"></canvas>
         </div>
-        <p class="muted">按周汇总展示，总额已包含“信用卡”为负债后的净值。</p>
+        <p class="muted">按周汇总展示，总额已包含“信用卡”为负债后的净值。图中数值单位为 million（百万 HKD）。</p>
       </section>
 
       <section class="panel">
@@ -417,6 +431,83 @@
           <thead><tr><th>周日期</th><th>折算总资产（HKD）</th><th>变化金额</th><th>变化率</th></tr></thead>
           <tbody id="historyBody"></tbody>
         </table>
+      </section>
+    </section>
+
+    <section class="tab-pane" id="tab4">
+      <section class="tab4-grid">
+        <div class="kpi">
+          <div class="kpi-card">
+            <div class="t">投资总成本（HKD）</div>
+            <div class="v mono" id="prodTotalCostHkd">HK$ 0.00</div>
+          </div>
+          <div class="kpi-card">
+            <div class="t">投资总收益额（HKD）</div>
+            <div class="v mono" id="prodTotalProfitHkd">HK$ 0.00</div>
+          </div>
+          <div class="kpi-card">
+            <div class="t">所有投资产品总收益率</div>
+            <div class="v mono" id="prodTotalReturnRate">--</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>新增投资产品</h2>
+          <div class="form-grid">
+            <div class="field">
+              <label for="prodName">产品名称</label>
+              <input id="prodName" placeholder="例如 03466 高息股 / 某基金" />
+            </div>
+            <div class="field">
+              <label for="prodSymbol">行情代码（用于自动更新现价）</label>
+              <input id="prodSymbol" placeholder="例如 aapl.us / msft.us" />
+            </div>
+            <div class="field">
+              <label for="prodCurrency">产品币种</label>
+              <select id="prodCurrency">
+                <option value="HKD">HKD</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="prodAvgCost">平均成本价</label>
+              <input id="prodAvgCost" type="number" step="0.0001" min="0" placeholder="0.0000" />
+            </div>
+            <div class="field">
+              <label for="prodUnits">持有份额数</label>
+              <input id="prodUnits" type="number" step="0.0001" min="0" placeholder="0.0000" />
+            </div>
+            <div class="field">
+              <label for="prodCurrentPrice">现价</label>
+              <input id="prodCurrentPrice" type="number" step="0.0001" min="0" placeholder="0.0000" />
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn-primary" id="addProductBtn">添加产品</button>
+            <button class="btn-soft" id="refreshAllProductsBtn">自动更新全部现价</button>
+          </div>
+          <p class="muted">支持 HKD/USD 持仓；最终全部按港币汇总。自动更新现价数据源：Stooq（通过代理访问）。</p>
+        </div>
+
+        <div class="panel">
+          <h2>投资产品汇总表</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>产品名称</th>
+                <th>代码</th>
+                <th>币种</th>
+                <th>平均成本价</th>
+                <th>持有份额数</th>
+                <th>现价</th>
+                <th>收益额(HKD)</th>
+                <th>收益率</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="productBody"></tbody>
+          </table>
+        </div>
       </section>
     </section>
   </div>
@@ -441,6 +532,12 @@
     const remarkEl = document.getElementById("remark");
     const msgEl = document.getElementById("msg");
     const fileInputEl = document.getElementById("fileInput");
+    const prodNameEl = document.getElementById("prodName");
+    const prodSymbolEl = document.getElementById("prodSymbol");
+    const prodCurrencyEl = document.getElementById("prodCurrency");
+    const prodAvgCostEl = document.getElementById("prodAvgCost");
+    const prodUnitsEl = document.getElementById("prodUnits");
+    const prodCurrentPriceEl = document.getElementById("prodCurrentPrice");
     const tabButtons = document.querySelectorAll(".tabbtn");
     const tabPanes = document.querySelectorAll(".tab-pane");
 
@@ -450,6 +547,7 @@
         return {
           selectedWeek: todayISO(),
           records: [],
+          products: [],
           rates: { ...defaultRates },
           platforms: [...defaultPlatforms],
           categories: [...defaultCategories]
@@ -460,6 +558,7 @@
         return {
           selectedWeek: parsed.selectedWeek || todayISO(),
           records: Array.isArray(parsed.records) ? parsed.records : [],
+          products: Array.isArray(parsed.products) ? parsed.products : [],
           rates: { ...defaultRates, ...(parsed.rates || {}) },
           platforms: uniq([...(parsed.platforms || []), ...defaultPlatforms]),
           categories: uniq([...(parsed.categories || []), ...defaultCategories])
@@ -468,6 +567,7 @@
         return {
           selectedWeek: todayISO(),
           records: [],
+          products: [],
           rates: { ...defaultRates },
           platforms: [...defaultPlatforms],
           categories: [...defaultCategories]
@@ -491,8 +591,16 @@
       return Number(n || 0).toLocaleString("en-HK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    function fmt4(n) {
+      return Number(n || 0).toLocaleString("en-HK", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+    }
+
     function fmtInt(n) {
       return Math.round(Number(n || 0)).toLocaleString("en-HK", { maximumFractionDigits: 0 });
+    }
+
+    function fmtMillion(n) {
+      return `${(Number(n || 0) / 1000000).toFixed(2)}M`;
     }
 
     function fmtSigned(n) {
@@ -504,6 +612,11 @@
       if (n === null || n === undefined || !Number.isFinite(n)) return "--";
       const num = Number(n);
       return `${num > 0 ? "+" : ""}${num.toFixed(2)}%`;
+    }
+
+    function fmtShare(part, total) {
+      if (!Number.isFinite(part) || !Number.isFinite(total) || total === 0) return "--";
+      return `${((part / total) * 100).toFixed(2)}%`;
     }
 
     function calcHkd(amount, currency) {
@@ -532,6 +645,40 @@
       return Object.entries(byWeek)
         .map(([weekDate, totalHkd]) => ({ weekDate, totalHkd }))
         .sort((a, b) => a.weekDate.localeCompare(b.weekDate));
+    }
+
+    function productMetrics(p) {
+      const avgCost = Number(p.avgCost || 0);
+      const units = Number(p.units || 0);
+      const currentPrice = Number(p.currentPrice || 0);
+      const currency = String(p.currency || "HKD").toUpperCase();
+      const profit = (currentPrice - avgCost) * units;
+      const costAmount = avgCost * units;
+      const returnRate = costAmount === 0 ? null : (profit / costAmount) * 100;
+      const costHkd = calcHkd(costAmount, currency);
+      const profitHkd = calcHkd(profit, currency);
+      return { currency, avgCost, units, currentPrice, profit, costAmount, returnRate, costHkd, profitHkd };
+    }
+
+    function normalizeSymbol(raw) {
+      return String(raw || "").trim().toLowerCase();
+    }
+
+    async function fetchQuotePrice(symbol) {
+      const s = normalizeSymbol(symbol);
+      if (!s) throw new Error("empty symbol");
+      const source = `http://stooq.com/q/l/?s=${encodeURIComponent(s)}&i=d`;
+      const url = `https://r.jina.ai/${source}`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`http ${resp.status}`);
+      const txt = await resp.text();
+      const line = txt.split("\n").map(x => x.trim()).find(x => x.includes(",") && (x.includes(".US") || x.includes(".HK") || x.includes(".PL") || x.includes(".DE") || x.includes(".JP") || x.includes(".UK") || x.includes(".CA") || x.includes(".FR") || x.includes(".CH") || x.includes(".IT") || x.includes(".ES")));
+      if (!line) throw new Error("no quote line");
+      const parts = line.split(",");
+      if (parts.length < 7) throw new Error("bad quote format");
+      const close = Number(parts[6]);
+      if (!Number.isFinite(close)) throw new Error("invalid close");
+      return close;
     }
 
     function renderSelects() {
@@ -602,6 +749,7 @@
       const rows = getCurrentWeekRecords();
       const byPlatform = {};
       const byCurrency = {};
+      const byCategory = {};
 
       let totalRaw = 0;
       let totalHkd = 0;
@@ -616,6 +764,8 @@
         if (!byCurrency[r.currency]) byCurrency[r.currency] = { raw: 0, hkd: 0 };
         byCurrency[r.currency].raw += amount;
         byCurrency[r.currency].hkd += hkd;
+        const cat = (r.category || "未分类").trim() || "未分类";
+        byCategory[cat] = (byCategory[cat] || 0) + hkd;
       });
 
       document.getElementById("kpiCount").textContent = String(rows.length);
@@ -625,14 +775,101 @@
       const pBody = document.getElementById("platformBody");
       pBody.innerHTML = Object.entries(byPlatform)
         .sort((a, b) => b[1] - a[1])
-        .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td class="mono">${fmt(v)}</td></tr>`)
-        .join("") || `<tr><td colspan="2" class="muted">暂无数据</td></tr>`;
+        .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td class="mono">${fmt(v)}</td><td class="mono">${fmtShare(v, totalHkd)}</td></tr>`)
+        .join("") || `<tr><td colspan="3" class="muted">暂无数据</td></tr>`;
 
       const cBody = document.getElementById("currencyBody");
       cBody.innerHTML = Object.entries(byCurrency)
         .sort((a, b) => b[1].hkd - a[1].hkd)
-        .map(([k, v]) => `<tr><td class="mono">${escapeHtml(k)}</td><td class="mono">${fmt(v.raw)}</td><td class="mono">${fmt(v.hkd)}</td></tr>`)
+        .map(([k, v]) => `<tr><td class="mono">${escapeHtml(k)}</td><td class="mono">${fmt(v.raw)}</td><td class="mono">${fmt(v.hkd)}</td><td class="mono">${fmtShare(v.hkd, totalHkd)}</td></tr>`)
+        .join("") || `<tr><td colspan="4" class="muted">暂无数据</td></tr>`;
+
+      const catBody = document.getElementById("categoryBody");
+      catBody.innerHTML = Object.entries(byCategory)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td class="mono">${fmt(v)}</td><td class="mono">${fmtShare(v, totalHkd)}</td></tr>`)
         .join("") || `<tr><td colspan="3" class="muted">暂无数据</td></tr>`;
+    }
+
+    function renderProducts() {
+      const body = document.getElementById("productBody");
+      if (!body) return;
+      if (!state.products || state.products.length === 0) {
+        body.innerHTML = `<tr><td colspan="9" class="muted">暂无产品</td></tr>`;
+        document.getElementById("prodTotalCostHkd").textContent = "HK$ 0.00";
+        document.getElementById("prodTotalProfitHkd").textContent = "HK$ 0.00";
+        document.getElementById("prodTotalReturnRate").textContent = "--";
+        document.getElementById("prodTotalReturnRate").className = "v mono";
+        return;
+      }
+
+      let totalCostHkd = 0;
+      let totalProfitHkd = 0;
+
+      body.innerHTML = state.products.map(p => {
+        const m = productMetrics(p);
+        totalCostHkd += m.costHkd;
+        totalProfitHkd += m.profitHkd;
+
+        const profitClass = m.profitHkd >= 0 ? "pos" : "neg";
+        const rrClass = m.returnRate === null ? "" : (m.returnRate >= 0 ? "pos" : "neg");
+        return `<tr>
+          <td>${escapeHtml(p.name)}</td>
+          <td class="mono">${escapeHtml(p.symbol || "")}</td>
+          <td class="mono">${escapeHtml(m.currency)}</td>
+          <td class="mono">${fmt4(m.avgCost)}</td>
+          <td class="mono">${fmt4(m.units)}</td>
+          <td class="mono">${fmt4(m.currentPrice)}</td>
+          <td class="mono ${profitClass}">${fmtSigned(m.profitHkd)}</td>
+          <td class="mono ${rrClass}">${m.returnRate === null ? "--" : fmtPct(m.returnRate)}</td>
+          <td>
+            <button class="btn-soft" data-refresh-product="${p.id}">更新现价</button>
+            <button class="btn-warn" data-del-product="${p.id}">删除</button>
+          </td>
+        </tr>`;
+      }).join("");
+
+      const totalReturnRate = totalCostHkd === 0 ? null : (totalProfitHkd / totalCostHkd) * 100;
+      document.getElementById("prodTotalCostHkd").textContent = `HK$ ${fmt(totalCostHkd)}`;
+      document.getElementById("prodTotalProfitHkd").textContent = `HK$ ${fmtSigned(totalProfitHkd)}`;
+      const totalRateEl = document.getElementById("prodTotalReturnRate");
+      totalRateEl.textContent = totalReturnRate === null ? "--" : fmtPct(totalReturnRate);
+      totalRateEl.className = `v mono ${totalReturnRate === null ? "" : (totalReturnRate >= 0 ? "pos" : "neg")}`;
+
+      body.querySelectorAll("button[data-del-product]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.delProduct;
+          state.products = state.products.filter(p => p.id !== id);
+          saveState();
+          renderProducts();
+          flash("已删除产品");
+        });
+      });
+
+      body.querySelectorAll("button[data-refresh-product]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.refreshProduct;
+          const idx = state.products.findIndex(p => p.id === id);
+          if (idx < 0) return;
+          const symbol = state.products[idx].symbol;
+          if (!symbol) {
+            flash("该产品未填写行情代码", false);
+            return;
+          }
+          btn.disabled = true;
+          try {
+            const px = await fetchQuotePrice(symbol);
+            state.products[idx].currentPrice = px;
+            saveState();
+            renderProducts();
+            flash(`已更新 ${state.products[idx].name} 现价`);
+          } catch (_) {
+            flash(`更新失败：${symbol} 暂无可用行情`, false);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
     }
 
     function renderHistory() {
@@ -723,7 +960,7 @@
         const t = i / tickCount;
         const y = top + t * plotH;
         const raw = max - t * range;
-        const tickValue = Math.round(raw);
+        const tickValueM = Math.round(raw / 1000000);
         ctx.strokeStyle = "#e4edeb";
         ctx.beginPath();
         ctx.moveTo(left, y);
@@ -734,7 +971,7 @@
         ctx.font = "12px sans-serif";
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        ctx.fillText(fmtInt(tickValue), left - 8, y);
+        ctx.fillText(`${tickValueM}M`, left - 8, y);
       }
 
       ctx.strokeStyle = "#cfdad8";
@@ -775,7 +1012,7 @@
         ctx.textBaseline = i % 2 === 0 ? "bottom" : "top";
         ctx.fillStyle = "#355763";
         const labelY = i % 2 === 0 ? p.y - 6 : p.y + 6;
-        ctx.fillText(fmtInt(p.value), p.x, labelY);
+        ctx.fillText(fmtMillion(p.value), p.x, labelY);
         ctx.fillStyle = "#0b6e79";
       });
 
@@ -800,6 +1037,7 @@
       renderSummary();
       renderHistory();
       renderTrend();
+      renderProducts();
     }
 
     function flash(text, ok = true) {
@@ -862,6 +1100,59 @@
       flash("汇率已保存");
     });
 
+    document.getElementById("addProductBtn").addEventListener("click", () => {
+      const p = {
+        id: crypto.randomUUID(),
+        name: prodNameEl.value.trim(),
+        symbol: normalizeSymbol(prodSymbolEl.value),
+        currency: (prodCurrencyEl.value || "HKD").toUpperCase(),
+        avgCost: Number(prodAvgCostEl.value),
+        units: Number(prodUnitsEl.value),
+        currentPrice: Number(prodCurrentPriceEl.value)
+      };
+
+      if (!p.name || !Number.isFinite(p.avgCost) || !Number.isFinite(p.units) || !Number.isFinite(p.currentPrice)) {
+        flash("请完整填写投资产品字段", false);
+        return;
+      }
+
+      state.products.push(p);
+      if (!(p.currency in state.rates)) state.rates[p.currency] = 1;
+      saveState();
+      renderProducts();
+      renderRates();
+      flash("产品已添加");
+
+      prodNameEl.value = "";
+      prodSymbolEl.value = "";
+      prodCurrencyEl.value = "HKD";
+      prodAvgCostEl.value = "";
+      prodUnitsEl.value = "";
+      prodCurrentPriceEl.value = "";
+    });
+
+    document.getElementById("refreshAllProductsBtn").addEventListener("click", async () => {
+      const withSymbol = state.products.filter(p => normalizeSymbol(p.symbol));
+      if (withSymbol.length === 0) {
+        flash("没有可更新的产品代码", false);
+        return;
+      }
+
+      let okCount = 0;
+      for (const p of withSymbol) {
+        try {
+          const px = await fetchQuotePrice(p.symbol);
+          p.currentPrice = px;
+          okCount += 1;
+        } catch (_) {
+        }
+      }
+      saveState();
+      renderProducts();
+      if (okCount > 0) flash(`已自动更新 ${okCount} 个产品现价`);
+      else flash("自动更新失败：请检查产品代码格式", false);
+    });
+
     document.getElementById("clearBtn").addEventListener("click", () => {
       const n = getCurrentWeekRecords().length;
       if (n === 0) return;
@@ -895,6 +1186,11 @@
         if (!Array.isArray(data.records)) throw new Error("bad format");
 
         state.records = data.records;
+        state.products = Array.isArray(data.products) ? data.products.map(p => ({
+          ...p,
+          symbol: normalizeSymbol(p.symbol || ""),
+          currency: String(p.currency || "HKD").toUpperCase()
+        })) : [];
         state.rates = { ...defaultRates, ...(data.rates || {}) };
         state.platforms = uniq([...(data.platforms || []), ...defaultPlatforms]);
         state.categories = uniq([...(data.categories || []), ...defaultCategories]);
