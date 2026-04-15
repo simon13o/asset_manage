@@ -503,6 +503,7 @@
                 <th>平均成本价</th>
                 <th>持有份额数</th>
                 <th>现价</th>
+                <th>总价(现价×份额)</th>
                 <th>收益额(HKD)</th>
                 <th>收益率</th>
                 <th>操作</th>
@@ -547,6 +548,7 @@
     const tabPanes = document.querySelectorAll(".tab-pane");
     let detailCollapsed = false;
     let editingDetailId = null;
+    let editingProductId = null;
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -659,12 +661,13 @@
       const units = Number(p.units || 0);
       const currentPrice = Number(p.currentPrice || 0);
       const currency = String(p.currency || "HKD").toUpperCase();
+      const totalValue = currentPrice * units;
       const profit = (currentPrice - avgCost) * units;
       const costAmount = avgCost * units;
       const returnRate = costAmount === 0 ? null : (profit / costAmount) * 100;
       const costHkd = calcHkd(costAmount, currency);
       const profitHkd = calcHkd(profit, currency);
-      return { currency, avgCost, units, currentPrice, profit, costAmount, returnRate, costHkd, profitHkd };
+      return { currency, avgCost, units, currentPrice, totalValue, profit, costAmount, returnRate, costHkd, profitHkd };
     }
 
     function normalizeSymbol(raw) {
@@ -893,7 +896,7 @@
       const body = document.getElementById("productBody");
       if (!body) return;
       if (!state.products || state.products.length === 0) {
-        body.innerHTML = `<tr><td colspan="9" class="muted">暂无产品</td></tr>`;
+        body.innerHTML = `<tr><td colspan="10" class="muted">暂无产品</td></tr>`;
         document.getElementById("prodTotalCostHkd").textContent = "HK$ 0.00";
         document.getElementById("prodTotalProfitHkd").textContent = "HK$ 0.00";
         document.getElementById("prodTotalReturnRate").textContent = "--";
@@ -909,6 +912,29 @@
         totalCostHkd += m.costHkd;
         totalProfitHkd += m.profitHkd;
 
+        if (editingProductId === p.id) {
+          return `<tr>
+            <td><input data-p-edit-name="${p.id}" value="${escapeHtml(p.name || "")}" /></td>
+            <td><input data-p-edit-symbol="${p.id}" value="${escapeHtml(p.symbol || "")}" /></td>
+            <td>
+              <select data-p-edit-currency="${p.id}">
+                <option value="HKD">HKD</option>
+                <option value="USD">USD</option>
+              </select>
+            </td>
+            <td><input data-p-edit-avg="${p.id}" type="number" step="0.0001" value="${Number(p.avgCost || 0)}" /></td>
+            <td><input data-p-edit-units="${p.id}" type="number" step="0.0001" value="${Number(p.units || 0)}" /></td>
+            <td><input data-p-edit-price="${p.id}" type="number" step="0.0001" value="${Number(p.currentPrice || 0)}" /></td>
+            <td class="mono">${fmt4(m.totalValue)}</td>
+            <td class="mono ${m.profitHkd >= 0 ? "pos" : "neg"}">${fmtSigned(m.profitHkd)}</td>
+            <td class="mono ${m.returnRate === null ? "" : (m.returnRate >= 0 ? "pos" : "neg")}">${m.returnRate === null ? "--" : fmtPct(m.returnRate)}</td>
+            <td>
+              <button class="btn-primary" data-p-save="${p.id}">保存</button>
+              <button class="btn-soft" data-p-cancel="${p.id}">取消</button>
+            </td>
+          </tr>`;
+        }
+
         const profitClass = m.profitHkd >= 0 ? "pos" : "neg";
         const rrClass = m.returnRate === null ? "" : (m.returnRate >= 0 ? "pos" : "neg");
         return `<tr>
@@ -918,14 +944,24 @@
           <td class="mono">${fmt4(m.avgCost)}</td>
           <td class="mono">${fmt4(m.units)}</td>
           <td class="mono">${fmt4(m.currentPrice)}</td>
+          <td class="mono">${fmt4(m.totalValue)}</td>
           <td class="mono ${profitClass}">${fmtSigned(m.profitHkd)}</td>
           <td class="mono ${rrClass}">${m.returnRate === null ? "--" : fmtPct(m.returnRate)}</td>
           <td>
+            <button class="btn-soft" data-p-edit="${p.id}">编辑</button>
             <button class="btn-soft" data-refresh-product="${p.id}">更新现价</button>
             <button class="btn-warn" data-del-product="${p.id}">删除</button>
           </td>
         </tr>`;
       }).join("");
+
+      if (editingProductId) {
+        const rec = state.products.find(x => x.id === editingProductId);
+        if (rec) {
+          const curEl = body.querySelector(`select[data-p-edit-currency="${editingProductId}"]`);
+          if (curEl) curEl.value = String(rec.currency || "HKD").toUpperCase();
+        }
+      }
 
       const totalReturnRate = totalCostHkd === 0 ? null : (totalProfitHkd / totalCostHkd) * 100;
       document.getElementById("prodTotalCostHkd").textContent = `HK$ ${fmt(totalCostHkd)}`;
@@ -934,10 +970,64 @@
       totalRateEl.textContent = totalReturnRate === null ? "--" : fmtPct(totalReturnRate);
       totalRateEl.className = `v mono ${totalReturnRate === null ? "" : (totalReturnRate >= 0 ? "pos" : "neg")}`;
 
+      body.querySelectorAll("button[data-p-edit]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          editingProductId = btn.dataset.pEdit;
+          renderProducts();
+        });
+      });
+
+      body.querySelectorAll("button[data-p-cancel]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          editingProductId = null;
+          renderProducts();
+        });
+      });
+
+      body.querySelectorAll("button[data-p-save]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.pSave;
+          const p = state.products.find(x => x.id === id);
+          if (!p) return;
+
+          const nameEl = body.querySelector(`input[data-p-edit-name="${id}"]`);
+          const symbolEl = body.querySelector(`input[data-p-edit-symbol="${id}"]`);
+          const currencyEl2 = body.querySelector(`select[data-p-edit-currency="${id}"]`);
+          const avgEl = body.querySelector(`input[data-p-edit-avg="${id}"]`);
+          const unitsEl = body.querySelector(`input[data-p-edit-units="${id}"]`);
+          const priceEl = body.querySelector(`input[data-p-edit-price="${id}"]`);
+
+          const avg = Number(avgEl?.value);
+          const units = Number(unitsEl?.value);
+          const price = Number(priceEl?.value);
+          const cur = String(currencyEl2?.value || "HKD").toUpperCase();
+
+          if (!nameEl?.value.trim() || !Number.isFinite(avg) || !Number.isFinite(units) || !Number.isFinite(price)) {
+            flash("修改失败：请填写有效的产品名称/价格/份额", false);
+            return;
+          }
+
+          p.name = nameEl.value.trim();
+          p.symbol = normalizeSymbol(symbolEl?.value || "");
+          p.currency = cur;
+          p.avgCost = avg;
+          p.units = units;
+          p.currentPrice = price;
+          if (!(cur in state.rates)) state.rates[cur] = 1;
+
+          editingProductId = null;
+          saveState();
+          renderProducts();
+          renderRates();
+          flash("产品已更新");
+        });
+      });
+
       body.querySelectorAll("button[data-del-product]").forEach(btn => {
         btn.addEventListener("click", () => {
           const id = btn.dataset.delProduct;
           state.products = state.products.filter(p => p.id !== id);
+          if (editingProductId === id) editingProductId = null;
           saveState();
           renderProducts();
           flash("已删除产品");
