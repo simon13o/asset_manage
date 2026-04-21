@@ -195,6 +195,30 @@
       margin-bottom: 14px;
     }
 
+    .draggable-panel {
+      position: relative;
+      user-select: none;
+    }
+
+    .draggable-panel.dragging {
+      opacity: 0.55;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: var(--sub);
+      border: 1px dashed #c8d2d0;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 12px;
+      background: #f8fcfb;
+      white-space: nowrap;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -360,11 +384,14 @@
         </div>
       </section>
 
-      <section class="tables">
-        <div class="panel">
+      <section class="tables" id="tab2Board">
+        <div class="panel draggable-panel" data-panel-id="detail" draggable="true">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <h2 style="margin:0;">当周明细</h2>
-            <button class="btn-soft" id="toggleDetailBtn">收起</button>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="drag-handle">拖拽移动</span>
+              <button class="btn-soft" id="toggleDetailBtn">收起</button>
+            </div>
           </div>
           <div id="detailPanelContent" style="margin-top:10px;">
             <table>
@@ -378,24 +405,33 @@
           </div>
         </div>
 
-        <div class="panel">
-          <h2>按平台汇总（HKD）</h2>
+        <div class="panel draggable-panel" data-panel-id="platform" draggable="true">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <h2 style="margin:0;">按平台汇总（HKD）</h2>
+            <span class="drag-handle">拖拽移动</span>
+          </div>
           <table>
             <thead><tr><th>平台</th><th>金额</th><th>占比</th></tr></thead>
             <tbody id="platformBody"></tbody>
           </table>
         </div>
 
-        <div class="panel">
-          <h2>按币种汇总（原币/HKD）</h2>
+        <div class="panel draggable-panel" data-panel-id="currency" draggable="true">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <h2 style="margin:0;">按币种汇总（原币/HKD）</h2>
+            <span class="drag-handle">拖拽移动</span>
+          </div>
           <table>
             <thead><tr><th>币种</th><th>原币</th><th>HKD</th><th>占比</th></tr></thead>
             <tbody id="currencyBody"></tbody>
           </table>
         </div>
 
-        <div class="panel">
-          <h2>按类别汇总（HKD）</h2>
+        <div class="panel draggable-panel" data-panel-id="category" draggable="true">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <h2 style="margin:0;">按类别汇总（HKD）</h2>
+            <span class="drag-handle">拖拽移动</span>
+          </div>
           <table>
             <thead><tr><th>类别</th><th>金额</th><th>占比</th></tr></thead>
             <tbody id="categoryBody"></tbody>
@@ -522,6 +558,7 @@
     const defaultPlatforms = [
       "ZA", "HSBC", "Webull", "Tiger", "Longbridge", "IKBR", "FUTU", "Wechat", "Alipay", "BOC", "CITIC", "CITI", "招商"
     ];
+    const defaultTab2PanelOrder = ["detail", "platform", "currency", "category"];
 
     const defaultCategories = ["现金流", "定存", "股票", "美股", "低风险投资", "信用卡"];
     const defaultRates = { HKD: 1, CNY: 1.1, USD: 7.8 };
@@ -538,6 +575,7 @@
     const fileInputEl = document.getElementById("fileInput");
     const toggleDetailBtn = document.getElementById("toggleDetailBtn");
     const detailPanelContent = document.getElementById("detailPanelContent");
+    const tab2BoardEl = document.getElementById("tab2Board");
     const prodNameEl = document.getElementById("prodName");
     const prodSymbolEl = document.getElementById("prodSymbol");
     const prodCurrencyEl = document.getElementById("prodCurrency");
@@ -549,6 +587,7 @@
     let detailCollapsed = false;
     let editingDetailId = null;
     let editingProductId = null;
+    let draggingPanelId = null;
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -557,6 +596,7 @@
           selectedWeek: todayISO(),
           records: [],
           products: [],
+          tab2PanelOrder: [...defaultTab2PanelOrder],
           rates: { ...defaultRates },
           platforms: [...defaultPlatforms],
           categories: [...defaultCategories]
@@ -568,6 +608,7 @@
           selectedWeek: parsed.selectedWeek || todayISO(),
           records: Array.isArray(parsed.records) ? parsed.records : [],
           products: Array.isArray(parsed.products) ? parsed.products : [],
+          tab2PanelOrder: Array.isArray(parsed.tab2PanelOrder) ? parsed.tab2PanelOrder : [...defaultTab2PanelOrder],
           rates: { ...defaultRates, ...(parsed.rates || {}) },
           platforms: uniq([...(parsed.platforms || []), ...defaultPlatforms]),
           categories: uniq([...(parsed.categories || []), ...defaultCategories])
@@ -577,6 +618,7 @@
           selectedWeek: todayISO(),
           records: [],
           products: [],
+          tab2PanelOrder: [...defaultTab2PanelOrder],
           rates: { ...defaultRates },
           platforms: [...defaultPlatforms],
           categories: [...defaultCategories]
@@ -654,6 +696,60 @@
       return Object.entries(byWeek)
         .map(([weekDate, totalHkd]) => ({ weekDate, totalHkd }))
         .sort((a, b) => a.weekDate.localeCompare(b.weekDate));
+    }
+
+    function normalizeTab2PanelOrder(order) {
+      const safe = Array.isArray(order) ? order.filter(x => defaultTab2PanelOrder.includes(x)) : [];
+      for (const id of defaultTab2PanelOrder) {
+        if (!safe.includes(id)) safe.push(id);
+      }
+      return safe;
+    }
+
+    function applyTab2PanelOrder() {
+      if (!tab2BoardEl) return;
+      state.tab2PanelOrder = normalizeTab2PanelOrder(state.tab2PanelOrder);
+      const panelMap = new Map();
+      tab2BoardEl.querySelectorAll(".draggable-panel").forEach(panel => {
+        panelMap.set(panel.dataset.panelId, panel);
+      });
+      for (const id of state.tab2PanelOrder) {
+        const panel = panelMap.get(id);
+        if (panel) tab2BoardEl.appendChild(panel);
+      }
+    }
+
+    function initTab2Drag() {
+      if (!tab2BoardEl) return;
+      tab2BoardEl.querySelectorAll(".draggable-panel").forEach(panel => {
+        panel.addEventListener("dragstart", () => {
+          draggingPanelId = panel.dataset.panelId;
+          panel.classList.add("dragging");
+        });
+        panel.addEventListener("dragend", () => {
+          panel.classList.remove("dragging");
+          draggingPanelId = null;
+        });
+        panel.addEventListener("dragover", ev => {
+          ev.preventDefault();
+        });
+        panel.addEventListener("drop", ev => {
+          ev.preventDefault();
+          const targetId = panel.dataset.panelId;
+          if (!draggingPanelId || draggingPanelId === targetId) return;
+          const order = normalizeTab2PanelOrder(state.tab2PanelOrder);
+          const from = order.indexOf(draggingPanelId);
+          const to = order.indexOf(targetId);
+          if (from < 0 || to < 0) return;
+          const [moved] = order.splice(from, 1);
+          order.splice(to, 0, moved);
+          state.tab2PanelOrder = order;
+          applyTab2PanelOrder();
+          saveState();
+          flash("板块顺序已更新");
+        });
+      });
+      applyTab2PanelOrder();
     }
 
     function productMetrics(p) {
@@ -1218,6 +1314,7 @@
     }
 
     function renderAll() {
+      applyTab2PanelOrder();
       renderSelects();
       renderRates();
       renderWeekChips();
@@ -1379,6 +1476,7 @@
           symbol: normalizeSymbol(p.symbol || ""),
           currency: String(p.currency || "HKD").toUpperCase()
         })) : [];
+        state.tab2PanelOrder = normalizeTab2PanelOrder(data.tab2PanelOrder);
         state.rates = { ...defaultRates, ...(data.rates || {}) };
         state.platforms = uniq([...(data.platforms || []), ...defaultPlatforms]);
         state.categories = uniq([...(data.categories || []), ...defaultCategories]);
@@ -1412,6 +1510,7 @@
     });
 
     initTabs();
+    initTab2Drag();
     renderAll();
   </script>
 </body>
