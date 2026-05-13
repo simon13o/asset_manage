@@ -304,6 +304,7 @@
       <button class="tabbtn" data-tab="tab2">标签页2：周明细汇总</button>
       <button class="tabbtn" data-tab="tab3">标签页3：历史趋势</button>
       <button class="tabbtn" data-tab="tab4">标签页4：投资产品</button>
+      <button class="tabbtn" data-tab="tab5">标签页5：房产支出</button>
     </section>
 
     <section class="tab-pane active" id="tab1">
@@ -550,6 +551,135 @@
         </div>
       </section>
     </section>
+
+    <section class="tab-pane" id="tab5">
+      <section class="kpi">
+        <div class="kpi-card">
+          <div class="t">房屋总价（HKD）</div>
+          <div class="v mono" id="houseTotalKpi">HK$ 0.00</div>
+        </div>
+        <div class="kpi-card">
+          <div class="t">首付额（HKD）</div>
+          <div class="v mono" id="houseDownKpi">HK$ 0.00</div>
+        </div>
+        <div class="kpi-card">
+          <div class="t">贷款额（HKD）</div>
+          <div class="v mono" id="houseLoanKpi">HK$ 0.00</div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <h2>房产支出设置</h2>
+          <div class="form-grid">
+            <div class="field">
+              <label for="houseTotalPrice">房屋总价（HKD）</label>
+              <input id="houseTotalPrice" type="number" step="0.01" min="0" />
+            </div>
+            <div class="field">
+              <label for="houseDownPayment">首付额（HKD）</label>
+              <input id="houseDownPayment" type="number" step="0.01" min="0" />
+            </div>
+            <div class="field">
+              <label for="houseAnnualRate">年利率（%）</label>
+              <input id="houseAnnualRate" type="number" step="0.001" min="0" />
+            </div>
+            <div class="field">
+              <label for="houseYears">贷款年限（年）</label>
+              <input id="houseYears" type="number" step="1" min="1" />
+            </div>
+            <div class="field">
+              <label for="houseStartDate">开始还款日期</label>
+              <input id="houseStartDate" type="date" />
+            </div>
+            <div class="field">
+              <label for="houseDisplayMonths">展示期数（月）</label>
+              <input id="houseDisplayMonths" type="number" step="1" min="1" />
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn-primary" id="saveHousingBtn">保存房产计划</button>
+          </div>
+          <p class="muted">贷款额 = 房屋总价 - 首付额；默认总价已预填 `8,553,000 HKD`。</p>
+        </div>
+
+        <div class="panel">
+          <h2>还款摘要</h2>
+          <table>
+            <tbody>
+              <tr><th>每月月供</th><td class="mono" id="houseMonthlyPayment">HK$ 0.00</td></tr>
+              <tr><th>贷款总利息</th><td class="mono" id="houseTotalInterest">HK$ 0.00</td></tr>
+              <tr><th>总还款额</th><td class="mono" id="houseTotalRepayment">HK$ 0.00</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>一手新盘分批付款明细</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label for="housePayDate">日期</label>
+            <input id="housePayDate" type="date" />
+          </div>
+          <div class="field">
+            <label for="housePayItem">款项</label>
+            <input id="housePayItem" placeholder="例如 定金 / 印花税 / 律师费" />
+          </div>
+          <div class="field">
+            <label for="housePayAmount">金额（HKD）</label>
+            <input id="housePayAmount" type="number" step="0.01" min="0" />
+          </div>
+          <div class="field">
+            <label for="housePayPaid">状态</label>
+            <select id="housePayPaid">
+              <option value="false">未缴纳</option>
+              <option value="true">已缴纳</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" id="addHousePaymentBtn">添加款项</button>
+        </div>
+        <p class="muted">支持后续编辑；“未缴纳费用”会自动汇总。</p>
+
+        <div class="kpi" style="margin-top:12px;">
+          <div class="kpi-card">
+            <div class="t">已登记总费用</div>
+            <div class="v mono" id="housePayTotalKpi">HK$ 0.00</div>
+          </div>
+          <div class="kpi-card">
+            <div class="t">已缴纳费用</div>
+            <div class="v mono" id="housePayPaidKpi">HK$ 0.00</div>
+          </div>
+          <div class="kpi-card">
+            <div class="t">未缴纳费用</div>
+            <div class="v mono neg" id="housePayUnpaidKpi">HK$ 0.00</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th><th>款项</th><th>金额</th><th>状态</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="housePaymentBody"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>还款计划（按月）</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>期数</th><th>还款日期</th><th>月供</th><th>本金</th><th>利息</th><th>剩余贷款</th>
+            </tr>
+          </thead>
+          <tbody id="housePlanBody"></tbody>
+        </table>
+      </section>
+    </section>
   </div>
 
   <script>
@@ -562,6 +692,15 @@
 
     const defaultCategories = ["现金流", "定存", "股票", "美股", "低风险投资", "信用卡"];
     const defaultRates = { HKD: 1, CNY: 1.1, USD: 7.8 };
+    const defaultHousing = {
+      totalPrice: 8553000,
+      downPayment: 1710600,
+      annualRate: 3.5,
+      years: 30,
+      startDate: "",
+      displayMonths: 24,
+      payments: []
+    };
 
     const state = loadState();
 
@@ -582,11 +721,22 @@
     const prodAvgCostEl = document.getElementById("prodAvgCost");
     const prodUnitsEl = document.getElementById("prodUnits");
     const prodCurrentPriceEl = document.getElementById("prodCurrentPrice");
+    const houseTotalPriceEl = document.getElementById("houseTotalPrice");
+    const houseDownPaymentEl = document.getElementById("houseDownPayment");
+    const houseAnnualRateEl = document.getElementById("houseAnnualRate");
+    const houseYearsEl = document.getElementById("houseYears");
+    const houseStartDateEl = document.getElementById("houseStartDate");
+    const houseDisplayMonthsEl = document.getElementById("houseDisplayMonths");
+    const housePayDateEl = document.getElementById("housePayDate");
+    const housePayItemEl = document.getElementById("housePayItem");
+    const housePayAmountEl = document.getElementById("housePayAmount");
+    const housePayPaidEl = document.getElementById("housePayPaid");
     const tabButtons = document.querySelectorAll(".tabbtn");
     const tabPanes = document.querySelectorAll(".tab-pane");
     let detailCollapsed = false;
     let editingDetailId = null;
     let editingProductId = null;
+    let editingHousePaymentId = null;
     let draggingPanelId = null;
 
     function loadState() {
@@ -596,6 +746,7 @@
           selectedWeek: todayISO(),
           records: [],
           products: [],
+          housing: { ...defaultHousing },
           tab2PanelOrder: [...defaultTab2PanelOrder],
           rates: { ...defaultRates },
           platforms: [...defaultPlatforms],
@@ -608,6 +759,7 @@
           selectedWeek: parsed.selectedWeek || todayISO(),
           records: Array.isArray(parsed.records) ? parsed.records : [],
           products: Array.isArray(parsed.products) ? parsed.products : [],
+          housing: { ...defaultHousing, ...(parsed.housing || {}) },
           tab2PanelOrder: Array.isArray(parsed.tab2PanelOrder) ? parsed.tab2PanelOrder : [...defaultTab2PanelOrder],
           rates: { ...defaultRates, ...(parsed.rates || {}) },
           platforms: uniq([...(parsed.platforms || []), ...defaultPlatforms]),
@@ -618,6 +770,7 @@
           selectedWeek: todayISO(),
           records: [],
           products: [],
+          housing: { ...defaultHousing },
           tab2PanelOrder: [...defaultTab2PanelOrder],
           rates: { ...defaultRates },
           platforms: [...defaultPlatforms],
@@ -674,6 +827,11 @@
       const rate = Number(state.rates[currency]);
       if (!Number.isFinite(rate)) return 0;
       return Number(amount || 0) * rate;
+    }
+
+    function clampNumber(v, fallback = 0) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
     }
 
     function signedAmount(record) {
@@ -764,6 +922,67 @@
       const costHkd = calcHkd(costAmount, currency);
       const profitHkd = calcHkd(profit, currency);
       return { currency, avgCost, units, currentPrice, totalValue, profit, costAmount, returnRate, costHkd, profitHkd };
+    }
+
+    function getHousingModel() {
+      const h = { ...defaultHousing, ...(state.housing || {}) };
+      const totalPrice = Math.max(0, clampNumber(h.totalPrice, defaultHousing.totalPrice));
+      const downPayment = Math.max(0, clampNumber(h.downPayment, defaultHousing.downPayment));
+      const annualRate = Math.max(0, clampNumber(h.annualRate, defaultHousing.annualRate));
+      const years = Math.max(1, Math.round(clampNumber(h.years, defaultHousing.years)));
+      const displayMonths = Math.max(1, Math.round(clampNumber(h.displayMonths, defaultHousing.displayMonths)));
+      const startDate = h.startDate || "";
+      const payments = Array.isArray(h.payments) ? h.payments.map(p => ({
+        id: String(p.id || crypto.randomUUID()),
+        date: String(p.date || ""),
+        item: String(p.item || "").trim(),
+        amount: Math.max(0, clampNumber(p.amount, 0)),
+        paid: Boolean(p.paid)
+      })) : [];
+      const loanAmount = Math.max(0, totalPrice - downPayment);
+      return { totalPrice, downPayment, annualRate, years, startDate, displayMonths, payments, loanAmount };
+    }
+
+    function buildHousingPlan(model) {
+      const months = model.years * 12;
+      const r = model.annualRate / 100 / 12;
+      let monthlyPayment = 0;
+      if (model.loanAmount <= 0) {
+        return { monthlyPayment: 0, totalInterest: 0, totalRepayment: 0, rows: [] };
+      }
+      if (r === 0) monthlyPayment = model.loanAmount / months;
+      else monthlyPayment = model.loanAmount * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
+
+      let balance = model.loanAmount;
+      let totalInterest = 0;
+      const rows = [];
+      const start = model.startDate ? new Date(model.startDate + "T00:00:00") : new Date();
+      for (let i = 1; i <= months; i++) {
+        const interest = r === 0 ? 0 : balance * r;
+        let principal = monthlyPayment - interest;
+        if (i === months) {
+          principal = balance;
+          monthlyPayment = principal + interest;
+        }
+        balance = Math.max(0, balance - principal);
+        totalInterest += interest;
+        const d = new Date(start);
+        d.setMonth(d.getMonth() + (i - 1));
+        rows.push({
+          period: i,
+          date: d.toISOString().slice(0, 10),
+          payment: monthlyPayment,
+          principal,
+          interest,
+          balance
+        });
+      }
+      return {
+        monthlyPayment: rows[0]?.payment || 0,
+        totalInterest,
+        totalRepayment: model.loanAmount + totalInterest,
+        rows
+      };
     }
 
     function normalizeSymbol(raw) {
@@ -1156,6 +1375,141 @@
       });
     }
 
+    function renderHousing() {
+      const model = getHousingModel();
+      houseTotalPriceEl.value = String(model.totalPrice);
+      houseDownPaymentEl.value = String(model.downPayment);
+      houseAnnualRateEl.value = String(model.annualRate);
+      houseYearsEl.value = String(model.years);
+      houseStartDateEl.value = model.startDate || "";
+      houseDisplayMonthsEl.value = String(model.displayMonths);
+
+      document.getElementById("houseTotalKpi").textContent = `HK$ ${fmt(model.totalPrice)}`;
+      document.getElementById("houseDownKpi").textContent = `HK$ ${fmt(model.downPayment)}`;
+      document.getElementById("houseLoanKpi").textContent = `HK$ ${fmt(model.loanAmount)}`;
+
+      const plan = buildHousingPlan(model);
+      document.getElementById("houseMonthlyPayment").textContent = `HK$ ${fmt(plan.monthlyPayment)}`;
+      document.getElementById("houseTotalInterest").textContent = `HK$ ${fmt(plan.totalInterest)}`;
+      document.getElementById("houseTotalRepayment").textContent = `HK$ ${fmt(plan.totalRepayment)}`;
+
+      const payBody = document.getElementById("housePaymentBody");
+      const totalFee = model.payments.reduce((s, p) => s + p.amount, 0);
+      const paidFee = model.payments.filter(p => p.paid).reduce((s, p) => s + p.amount, 0);
+      const unpaidFee = totalFee - paidFee;
+      document.getElementById("housePayTotalKpi").textContent = `HK$ ${fmt(totalFee)}`;
+      document.getElementById("housePayPaidKpi").textContent = `HK$ ${fmt(paidFee)}`;
+      document.getElementById("housePayUnpaidKpi").textContent = `HK$ ${fmt(unpaidFee)}`;
+
+      if (!model.payments.length) {
+        payBody.innerHTML = `<tr><td colspan="5" class="muted">暂无分批款项</td></tr>`;
+      } else {
+        payBody.innerHTML = model.payments.map(p => {
+          if (editingHousePaymentId === p.id) {
+            return `<tr>
+              <td><input data-hp-date="${p.id}" type="date" value="${escapeHtml(p.date || "")}" /></td>
+              <td><input data-hp-item="${p.id}" value="${escapeHtml(p.item || "")}" /></td>
+              <td><input data-hp-amount="${p.id}" type="number" step="0.01" min="0" value="${Number(p.amount || 0)}" /></td>
+              <td>
+                <select data-hp-paid="${p.id}">
+                  <option value="false">未缴纳</option>
+                  <option value="true">已缴纳</option>
+                </select>
+              </td>
+              <td>
+                <button class="btn-primary" data-hp-save="${p.id}">保存</button>
+                <button class="btn-soft" data-hp-cancel="${p.id}">取消</button>
+              </td>
+            </tr>`;
+          }
+          return `<tr>
+            <td>${escapeHtml(p.date || "")}</td>
+            <td>${escapeHtml(p.item || "")}</td>
+            <td class="mono">${fmt(p.amount)}</td>
+            <td>${p.paid ? "已缴纳" : "未缴纳"}</td>
+            <td>
+              <button class="btn-soft" data-hp-edit="${p.id}">编辑</button>
+              <button class="btn-warn" data-hp-del="${p.id}">删除</button>
+            </td>
+          </tr>`;
+        }).join("");
+      }
+
+      if (editingHousePaymentId) {
+        const p = model.payments.find(x => x.id === editingHousePaymentId);
+        if (p) {
+          const paidEl = payBody.querySelector(`select[data-hp-paid="${p.id}"]`);
+          if (paidEl) paidEl.value = p.paid ? "true" : "false";
+        }
+      }
+
+      payBody.querySelectorAll("button[data-hp-edit]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          editingHousePaymentId = btn.dataset.hpEdit;
+          renderHousing();
+        });
+      });
+      payBody.querySelectorAll("button[data-hp-cancel]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          editingHousePaymentId = null;
+          renderHousing();
+        });
+      });
+      payBody.querySelectorAll("button[data-hp-save]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.hpSave;
+          const target = model.payments.find(x => x.id === id);
+          if (!target) return;
+          const dateEl = payBody.querySelector(`input[data-hp-date="${id}"]`);
+          const itemEl = payBody.querySelector(`input[data-hp-item="${id}"]`);
+          const amountEl2 = payBody.querySelector(`input[data-hp-amount="${id}"]`);
+          const paidEl = payBody.querySelector(`select[data-hp-paid="${id}"]`);
+          const amount = Math.max(0, clampNumber(amountEl2?.value, -1));
+          const item = itemEl?.value?.trim() || "";
+          if (!item || amount < 0) {
+            flash("请填写有效的款项和金额", false);
+            return;
+          }
+          state.housing.payments = model.payments.map(x => x.id === id ? {
+            ...x,
+            date: dateEl?.value || "",
+            item,
+            amount,
+            paid: (paidEl?.value || "false") === "true"
+          } : x);
+          editingHousePaymentId = null;
+          saveState();
+          renderHousing();
+          flash("款项已更新");
+        });
+      });
+      payBody.querySelectorAll("button[data-hp-del]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.hpDel;
+          state.housing.payments = model.payments.filter(x => x.id !== id);
+          if (editingHousePaymentId === id) editingHousePaymentId = null;
+          saveState();
+          renderHousing();
+          flash("款项已删除");
+        });
+      });
+
+      const body = document.getElementById("housePlanBody");
+      if (!plan.rows.length) {
+        body.innerHTML = `<tr><td colspan="6" class="muted">暂无还款计划</td></tr>`;
+        return;
+      }
+      const showRows = plan.rows.slice(0, model.displayMonths);
+      body.innerHTML = showRows.map(r => `<tr>
+        <td class="mono">${r.period}</td>
+        <td>${r.date}</td>
+        <td class="mono">${fmt(r.payment)}</td>
+        <td class="mono">${fmt(r.principal)}</td>
+        <td class="mono">${fmt(r.interest)}</td>
+        <td class="mono">${fmt(r.balance)}</td>
+      </tr>`).join("");
+    }
+
     function renderHistory() {
       const weekly = getWeeklyTotals();
 
@@ -1323,6 +1677,7 @@
       renderHistory();
       renderTrend();
       renderProducts();
+      renderHousing();
     }
 
     function flash(text, ok = true) {
@@ -1438,6 +1793,52 @@
       else flash("自动更新失败：请检查产品代码格式", false);
     });
 
+    document.getElementById("saveHousingBtn").addEventListener("click", () => {
+      const totalPrice = Math.max(0, clampNumber(houseTotalPriceEl.value, defaultHousing.totalPrice));
+      const downPayment = Math.max(0, clampNumber(houseDownPaymentEl.value, defaultHousing.downPayment));
+      const annualRate = Math.max(0, clampNumber(houseAnnualRateEl.value, defaultHousing.annualRate));
+      const years = Math.max(1, Math.round(clampNumber(houseYearsEl.value, defaultHousing.years)));
+      const displayMonths = Math.max(1, Math.round(clampNumber(houseDisplayMonthsEl.value, defaultHousing.displayMonths)));
+      const startDate = houseStartDateEl.value || "";
+
+      state.housing = {
+        totalPrice,
+        downPayment,
+        annualRate,
+        years,
+        startDate,
+        displayMonths,
+        payments: Array.isArray(state.housing?.payments) ? state.housing.payments : []
+      };
+      saveState();
+      renderHousing();
+      flash("房产计划已保存");
+    });
+
+    document.getElementById("addHousePaymentBtn").addEventListener("click", () => {
+      const date = housePayDateEl.value || "";
+      const item = housePayItemEl.value.trim();
+      const amount = Math.max(0, clampNumber(housePayAmountEl.value, -1));
+      const paid = (housePayPaidEl.value || "false") === "true";
+      if (!item || amount < 0) {
+        flash("请填写有效的款项和金额", false);
+        return;
+      }
+      const list = Array.isArray(state.housing?.payments) ? state.housing.payments : [];
+      state.housing = {
+        ...defaultHousing,
+        ...(state.housing || {}),
+        payments: [...list, { id: crypto.randomUUID(), date, item, amount, paid }]
+      };
+      saveState();
+      renderHousing();
+      housePayDateEl.value = "";
+      housePayItemEl.value = "";
+      housePayAmountEl.value = "";
+      housePayPaidEl.value = "false";
+      flash("款项已添加");
+    });
+
     document.getElementById("clearBtn").addEventListener("click", () => {
       const n = getCurrentWeekRecords().length;
       if (n === 0) return;
@@ -1476,6 +1877,7 @@
           symbol: normalizeSymbol(p.symbol || ""),
           currency: String(p.currency || "HKD").toUpperCase()
         })) : [];
+        state.housing = { ...defaultHousing, ...(data.housing || {}) };
         state.tab2PanelOrder = normalizeTab2PanelOrder(data.tab2PanelOrder);
         state.rates = { ...defaultRates, ...(data.rates || {}) };
         state.platforms = uniq([...(data.platforms || []), ...defaultPlatforms]);
