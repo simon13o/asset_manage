@@ -270,6 +270,46 @@
       gap: 10px;
     }
 
+    .bucket-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(220px, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .bucket {
+      border: 1px dashed #c8d9d6;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fcfffe;
+      min-height: 180px;
+    }
+
+    .bucket.over {
+      border-color: var(--accent);
+      background: #edf8f6;
+    }
+
+    .bucket h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: #355763;
+    }
+
+    .product-card {
+      border: 1px solid #dbe7e4;
+      border-radius: 10px;
+      padding: 8px;
+      background: #fff;
+      margin-bottom: 8px;
+      cursor: grab;
+    }
+
+    .product-card:active { cursor: grabbing; }
+    .product-card .name { font-weight: 700; font-size: 13px; }
+    .product-card .meta { font-size: 12px; color: var(--sub); }
+
     .trend-wrap {
       border: 1px solid var(--line);
       border-radius: 14px;
@@ -289,6 +329,7 @@
       .kpi { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
       #trendCanvas { height: 240px; }
+      .bucket-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -530,6 +571,47 @@
         </div>
 
         <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <h2 style="margin:0;">5大板块分仓（拖拽产品到板块）</h2>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <label for="productBucketCurrency" class="muted">显示货币</label>
+              <select id="productBucketCurrency" style="height:34px;">
+                <option value="HKD">HKD</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+          <div class="bucket-grid" id="productBucketBoard">
+            <div class="bucket" data-bucket-id="core_growth">
+              <h3>核心增长仓</h3>
+              <div class="meta" data-bucket-summary="core_growth"></div>
+              <div data-bucket-list="core_growth"></div>
+            </div>
+            <div class="bucket" data-bucket-id="satellite_attack">
+              <h3>卫星进攻仓</h3>
+              <div class="meta" data-bucket-summary="satellite_attack"></div>
+              <div data-bucket-list="satellite_attack"></div>
+            </div>
+            <div class="bucket" data-bucket-id="income_yield">
+              <h3>收息仓</h3>
+              <div class="meta" data-bucket-summary="income_yield"></div>
+              <div data-bucket-list="income_yield"></div>
+            </div>
+            <div class="bucket" data-bucket-id="defensive_buffer">
+              <h3>防守缓冲仓</h3>
+              <div class="meta" data-bucket-summary="defensive_buffer"></div>
+              <div data-bucket-list="defensive_buffer"></div>
+            </div>
+            <div class="bucket" data-bucket-id="hedge_diversified">
+              <h3>对冲分散仓</h3>
+              <div class="meta" data-bucket-summary="hedge_diversified"></div>
+              <div data-bucket-list="hedge_diversified"></div>
+            </div>
+          </div>
+          <p class="muted">拖拽任意产品卡片到目标板块即可完成分仓。</p>
+        </div>
+
+        <div class="panel">
           <h2>投资产品汇总表</h2>
           <table>
             <thead>
@@ -689,6 +771,13 @@
       "ZA", "HSBC", "Webull", "Tiger", "Longbridge", "IKBR", "FUTU", "Wechat", "Alipay", "BOC", "CITIC", "CITI", "招商"
     ];
     const defaultTab2PanelOrder = ["detail", "platform", "currency", "category"];
+    const productBuckets = [
+      { id: "core_growth", label: "核心增长仓" },
+      { id: "satellite_attack", label: "卫星进攻仓" },
+      { id: "income_yield", label: "收息仓" },
+      { id: "defensive_buffer", label: "防守缓冲仓" },
+      { id: "hedge_diversified", label: "对冲分散仓" }
+    ];
 
     const defaultCategories = ["现金流", "定存", "股票", "美股", "低风险投资", "信用卡"];
     const defaultRates = { HKD: 1, CNY: 1.1, USD: 7.8 };
@@ -718,6 +807,7 @@
     const prodNameEl = document.getElementById("prodName");
     const prodSymbolEl = document.getElementById("prodSymbol");
     const prodCurrencyEl = document.getElementById("prodCurrency");
+    const productBucketCurrencyEl = document.getElementById("productBucketCurrency");
     const prodAvgCostEl = document.getElementById("prodAvgCost");
     const prodUnitsEl = document.getElementById("prodUnits");
     const prodCurrentPriceEl = document.getElementById("prodCurrentPrice");
@@ -738,6 +828,7 @@
     let editingProductId = null;
     let editingHousePaymentId = null;
     let draggingPanelId = null;
+    let draggingProductId = null;
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -746,6 +837,7 @@
           selectedWeek: todayISO(),
           records: [],
           products: [],
+          productBucketCurrency: "HKD",
           housing: { ...defaultHousing },
           tab2PanelOrder: [...defaultTab2PanelOrder],
           rates: { ...defaultRates },
@@ -758,7 +850,11 @@
         return {
           selectedWeek: parsed.selectedWeek || todayISO(),
           records: Array.isArray(parsed.records) ? parsed.records : [],
-          products: Array.isArray(parsed.products) ? parsed.products : [],
+          products: Array.isArray(parsed.products) ? parsed.products.map(p => ({
+            ...p,
+            bucket: normalizeProductBucket(p.bucket)
+          })) : [],
+          productBucketCurrency: (parsed.productBucketCurrency === "USD" ? "USD" : "HKD"),
           housing: { ...defaultHousing, ...(parsed.housing || {}) },
           tab2PanelOrder: Array.isArray(parsed.tab2PanelOrder) ? parsed.tab2PanelOrder : [...defaultTab2PanelOrder],
           rates: { ...defaultRates, ...(parsed.rates || {}) },
@@ -770,6 +866,7 @@
           selectedWeek: todayISO(),
           records: [],
           products: [],
+          productBucketCurrency: "HKD",
           housing: { ...defaultHousing },
           tab2PanelOrder: [...defaultTab2PanelOrder],
           rates: { ...defaultRates },
@@ -987,6 +1084,11 @@
 
     function normalizeSymbol(raw) {
       return String(raw || "").trim().toLowerCase();
+    }
+
+    function normalizeProductBucket(v) {
+      const id = String(v || "");
+      return productBuckets.some(b => b.id === id) ? id : "core_growth";
     }
 
     async function fetchQuotePrice(symbol) {
@@ -1208,6 +1310,7 @@
     }
 
     function renderProducts() {
+      renderProductBuckets();
       const body = document.getElementById("productBody");
       if (!body) return;
       if (!state.products || state.products.length === 0) {
@@ -1325,6 +1428,7 @@
           p.name = nameEl.value.trim();
           p.symbol = normalizeSymbol(symbolEl?.value || "");
           p.currency = cur;
+          p.bucket = normalizeProductBucket(p.bucket);
           p.avgCost = avg;
           p.units = units;
           p.currentPrice = price;
@@ -1371,6 +1475,84 @@
           } finally {
             btn.disabled = false;
           }
+        });
+      });
+    }
+
+    function renderProductBuckets() {
+      const board = document.getElementById("productBucketBoard");
+      if (!board) return;
+      const viewCurrency = state.productBucketCurrency === "USD" ? "USD" : "HKD";
+      if (productBucketCurrencyEl) productBucketCurrencyEl.value = viewCurrency;
+      const usdRate = Number(state.rates.USD || 0);
+      const byBucket = {};
+      const byBucketHkd = {};
+      for (const b of productBuckets) byBucket[b.id] = [];
+      for (const b of productBuckets) byBucketHkd[b.id] = 0;
+      for (const p of (state.products || [])) {
+        const bid = normalizeProductBucket(p.bucket);
+        p.bucket = bid;
+        byBucket[bid].push(p);
+        const m = productMetrics(p);
+        byBucketHkd[bid] += calcHkd(m.totalValue, m.currency);
+      }
+      const totalAllHkd = Object.values(byBucketHkd).reduce((s, n) => s + n, 0);
+
+      productBuckets.forEach(b => {
+        const listEl = board.querySelector(`[data-bucket-list="${b.id}"]`);
+        const summaryEl = board.querySelector(`[data-bucket-summary="${b.id}"]`);
+        if (!listEl) return;
+        const items = byBucket[b.id];
+        const bucketHkd = byBucketHkd[b.id] || 0;
+        const share = totalAllHkd === 0 ? "--" : `${((bucketHkd / totalAllHkd) * 100).toFixed(2)}%`;
+        let displayAmount = 0;
+        let unit = viewCurrency;
+        if (viewCurrency === "USD") {
+          displayAmount = usdRate > 0 ? (bucketHkd / usdRate) : 0;
+          if (usdRate <= 0) unit = "USD(请设置汇率)";
+        } else {
+          displayAmount = bucketHkd;
+        }
+        if (summaryEl) summaryEl.textContent = `总金额 ${viewCurrency === "USD" ? fmt4(displayAmount) : fmt(displayAmount)} ${unit} · 占比 ${share}`;
+
+        if (!items.length) {
+          listEl.innerHTML = `<div class="muted">拖到这里</div>`;
+          return;
+        }
+        listEl.innerHTML = items.map(p => {
+          const m = productMetrics(p);
+          return `<div class="product-card" draggable="true" data-product-id="${p.id}">
+            <div class="name">${escapeHtml(p.name)}</div>
+            <div class="meta">${escapeHtml(p.symbol || "--")} · ${escapeHtml(m.currency)}</div>
+            <div class="meta">总价 ${fmt4(m.totalValue)} / 收益率 ${m.returnRate === null ? "--" : fmtPct(m.returnRate)}</div>
+          </div>`;
+        }).join("");
+      });
+
+      board.querySelectorAll(".product-card").forEach(card => {
+        card.addEventListener("dragstart", () => {
+          draggingProductId = card.dataset.productId;
+        });
+        card.addEventListener("dragend", () => {
+          draggingProductId = null;
+        });
+      });
+
+      board.querySelectorAll(".bucket").forEach(bucketEl => {
+        bucketEl.addEventListener("dragover", ev => ev.preventDefault());
+        bucketEl.addEventListener("dragenter", () => bucketEl.classList.add("over"));
+        bucketEl.addEventListener("dragleave", () => bucketEl.classList.remove("over"));
+        bucketEl.addEventListener("drop", ev => {
+          ev.preventDefault();
+          bucketEl.classList.remove("over");
+          if (!draggingProductId) return;
+          const targetBucket = bucketEl.dataset.bucketId;
+          const p = state.products.find(x => x.id === draggingProductId);
+          if (!p) return;
+          p.bucket = normalizeProductBucket(targetBucket);
+          saveState();
+          renderProductBuckets();
+          flash(`已移动到${productBuckets.find(x => x.id === p.bucket)?.label || "目标仓位"}`);
         });
       });
     }
@@ -1746,6 +1928,7 @@
         name: prodNameEl.value.trim(),
         symbol: normalizeSymbol(prodSymbolEl.value),
         currency: (prodCurrencyEl.value || "HKD").toUpperCase(),
+        bucket: "core_growth",
         avgCost: Number(prodAvgCostEl.value),
         units: Number(prodUnitsEl.value),
         currentPrice: Number(prodCurrentPriceEl.value)
@@ -1791,6 +1974,12 @@
       renderProducts();
       if (okCount > 0) flash(`已自动更新 ${okCount} 个产品现价`);
       else flash("自动更新失败：请检查产品代码格式", false);
+    });
+
+    productBucketCurrencyEl.addEventListener("change", () => {
+      state.productBucketCurrency = productBucketCurrencyEl.value === "USD" ? "USD" : "HKD";
+      saveState();
+      renderProductBuckets();
     });
 
     document.getElementById("saveHousingBtn").addEventListener("click", () => {
@@ -1875,8 +2064,10 @@
         state.products = Array.isArray(data.products) ? data.products.map(p => ({
           ...p,
           symbol: normalizeSymbol(p.symbol || ""),
-          currency: String(p.currency || "HKD").toUpperCase()
+          currency: String(p.currency || "HKD").toUpperCase(),
+          bucket: normalizeProductBucket(p.bucket)
         })) : [];
+        state.productBucketCurrency = (data.productBucketCurrency === "USD" ? "USD" : "HKD");
         state.housing = { ...defaultHousing, ...(data.housing || {}) };
         state.tab2PanelOrder = normalizeTab2PanelOrder(data.tab2PanelOrder);
         state.rates = { ...defaultRates, ...(data.rates || {}) };
