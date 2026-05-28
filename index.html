@@ -829,6 +829,13 @@
     let editingHousePaymentId = null;
     let draggingPanelId = null;
     let draggingProductId = null;
+    let trendViewStart = 0;
+    let trendHoverIndex = -1;
+    let trendDragging = false;
+    let trendLastX = 0;
+    let trendPoints = [];
+    let trendStepPx = 16;
+    let trendMaxStart = 0;
 
     function loadState() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -1756,23 +1763,31 @@
       rateEl.textContent = fmtPct(rate);
       deltaEl.className = `v mono ${delta === null ? "" : (delta >= 0 ? "pos" : "neg")}`;
       rateEl.className = `v mono ${rate === null ? "" : (rate >= 0 ? "pos" : "neg")}`;
-
-      const values = weekly.map(x => x.totalHkd);
-      const min = Math.min(...values);
-      const max = Math.max(...values);
       const left = 76;
       const right = 12;
       const top = 18;
       const bottom = 52;
       const plotW = w - left - right;
       const plotH = h - top - bottom;
+
+      const visibleCount = Math.min(24, Math.max(8, weekly.length));
+      const maxStart = Math.max(0, weekly.length - visibleCount);
+      trendMaxStart = maxStart;
+      trendViewStart = Math.max(0, Math.min(trendViewStart, maxStart));
+      const slice = weekly.slice(trendViewStart, trendViewStart + visibleCount);
+
+      const values = slice.map(x => x.totalHkd);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
       const range = Math.max(1, max - min);
 
-      const points = weekly.map((item, i) => {
-        const x = left + (weekly.length === 1 ? plotW / 2 : (i / (weekly.length - 1)) * plotW);
+      const points = slice.map((item, i) => {
+        const x = left + (slice.length === 1 ? plotW / 2 : (i / (slice.length - 1)) * plotW);
         const y = top + ((max - item.totalHkd) / range) * plotH;
-        return { x, y, weekDate: item.weekDate, value: item.totalHkd };
+        return { x, y, weekDate: item.weekDate, value: item.totalHkd, absIndex: trendViewStart + i };
       });
+      trendPoints = points;
+      trendStepPx = Math.max(12, plotW / Math.max(1, visibleCount - 1));
 
       const tickCount = 5;
       ctx.lineWidth = 1;
@@ -1807,7 +1822,7 @@
       ctx.textBaseline = "top";
       points.forEach((p, i) => {
         const shortDate = p.weekDate.slice(5);
-        if (weekly.length <= 14 || i % 2 === 0 || i === weekly.length - 1) {
+        if (slice.length <= 14 || i % 2 === 0 || i === slice.length - 1) {
           ctx.fillText(shortDate, p.x, h - bottom + 8);
         }
       });
@@ -1822,20 +1837,80 @@
       ctx.stroke();
 
       ctx.fillStyle = "#0b6e79";
-      points.forEach((p, i) => {
+      points.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
         ctx.fill();
-
-        ctx.font = "10px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = i % 2 === 0 ? "bottom" : "top";
-        ctx.fillStyle = "#355763";
-        const labelY = i % 2 === 0 ? p.y - 6 : p.y + 6;
-        ctx.fillText(fmtMillion(p.value), p.x, labelY);
-        ctx.fillStyle = "#0b6e79";
       });
 
+      if (trendHoverIndex >= 0) {
+        const hp = points.find(p => p.absIndex === trendHoverIndex);
+        if (hp) {
+          ctx.fillStyle = "#0b6e79";
+          ctx.beginPath();
+          ctx.arc(hp.x, hp.y, 4.6, 0, Math.PI * 2);
+          ctx.fill();
+
+          const tip = `${hp.weekDate}  HK$ ${fmt(hp.value)}`;
+          ctx.font = "11px sans-serif";
+          const tw = ctx.measureText(tip).width + 12;
+          const th = 20;
+          const tx = Math.max(8, Math.min(w - tw - 8, hp.x - tw / 2));
+          const ty = Math.max(8, hp.y - 30);
+          ctx.fillStyle = "rgba(24,43,54,0.92)";
+          ctx.fillRect(tx, ty, tw, th);
+          ctx.fillStyle = "#fff";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(tip, tx + 6, ty + th / 2);
+        }
+      }
+
+      if (!canvas.dataset.trendBound) {
+        const findHover = (mx, my) => {
+          let found = -1;
+          let best = 9999;
+          for (const p of trendPoints) {
+            const d = Math.hypot(mx - p.x, my - p.y);
+            if (d < best) {
+              best = d;
+              found = p.absIndex;
+            }
+          }
+          return best <= 10 ? found : -1;
+        };
+
+        canvas.addEventListener("mousedown", ev => {
+          trendDragging = true;
+          trendLastX = ev.offsetX;
+        });
+        window.addEventListener("mouseup", () => {
+          trendDragging = false;
+        });
+        canvas.addEventListener("mouseleave", () => {
+          trendHoverIndex = -1;
+          if (!trendDragging) renderTrend();
+        });
+        canvas.addEventListener("mousemove", ev => {
+          if (trendDragging) {
+            const dx = ev.offsetX - trendLastX;
+            trendLastX = ev.offsetX;
+            const step = Math.trunc(-dx / trendStepPx);
+            if (step !== 0) {
+              trendViewStart = Math.max(0, Math.min(trendMaxStart, trendViewStart + step));
+              trendHoverIndex = -1;
+              renderTrend();
+            }
+            return;
+          }
+          const hover = findHover(ev.offsetX, ev.offsetY);
+          if (hover !== trendHoverIndex) {
+            trendHoverIndex = hover;
+            renderTrend();
+          }
+        });
+        canvas.dataset.trendBound = "1";
+      }
     }
 
     function initTabs() {
